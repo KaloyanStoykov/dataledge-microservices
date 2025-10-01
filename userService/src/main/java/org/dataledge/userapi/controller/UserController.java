@@ -17,7 +17,7 @@ public class UserController {
     private UserRepository userRepository;
 
 
-    @GetMapping("")
+    @GetMapping()
     public UserResponse getUser() {
         Optional<UserEntity> userRetrieved = userRepository.findById(1);
         return userRetrieved.map(userEntity -> new UserResponse(userEntity.getFirstName())).orElseThrow();
