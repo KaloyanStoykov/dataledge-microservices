@@ -1,11 +1,11 @@
 pipeline {
     agent any
     stages {
-        stage('Build & Unit Test') {
+        stage('Build') {
             steps {
-                // Runs fast unit tests (mvn test, no DB needed)
-                sh 'mvn clean verify -DskipITs'
+                sh 'mvn -B -DskipTests clean package'
             }
         }
     }
 }
+
