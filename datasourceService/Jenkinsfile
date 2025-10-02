@@ -1,9 +1,10 @@
 pipeline {
-    agent { docker { image 'maven:3.9.11-eclipse-temurin-21-alpine' } }
+    agent any
     stages {
-        stage('build') {
+        stage('Build & Unit Test') {
             steps {
-                sh 'mvn --version'
+                // Runs fast unit tests (mvn test, no DB needed)
+                sh 'mvn clean verify -DskipITs'
             }
         }
     }
