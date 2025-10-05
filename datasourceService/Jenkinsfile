@@ -8,6 +8,13 @@ pipeline {
                 }
             }
         }
+        stage('Test') {
+            steps {
+                dir('datasourceService'){
+                    sh './mvnw -Dtest=*ManagerTest test'
+                }
+            }
+        }
     }
 }
 
