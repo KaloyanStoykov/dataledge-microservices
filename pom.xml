@@ -9,7 +9,7 @@
 
   <url>http://maven.apache.org</url>
     <modules>
-        <module>userAPI</module>
+        <module>userService</module>
     </modules>
     <licenses>
     </licenses>
