@@ -1,5 +1,10 @@
 pipeline {
     agent any
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('dataledge-microservices')
+        APP_NAME = "kiko12122/dataledge-microservices"
+    }
+
     stages {
         stage('Build') {
             steps {
@@ -13,6 +18,27 @@ pipeline {
                 dir('datasourceService'){
                     sh './mvnw -Dtest=*ManagerTest test'
                 }
+            }
+        }
+        stage('Build image'){
+            steps {
+                dir('datasourceService'){
+                    sh 'docker build -t $APP_NAME:$BUILD_NUMBER'
+                }
+            }
+        }
+
+        stage('Login to Dockerhub'){
+            steps {
+                dir('datasourceService'){
+                    sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u DOCKERHUB_CREDENTIALS_USR --password-stdin'
+                }
+            }
+        }
+
+        stage('Deploy'){
+            steps {
+                sh 'docker push $APP_NAME:BUILD_NUMBER'
             }
         }
     }
