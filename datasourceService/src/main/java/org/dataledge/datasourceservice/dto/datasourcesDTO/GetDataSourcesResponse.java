@@ -1,9 +1,8 @@
-package org.dataledge.datasourceservice.dto;
+package org.dataledge.datasourceservice.dto.datasourcesDTO;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.dataledge.datasourceservice.data.DataSource;
 
 import java.util.List;
 

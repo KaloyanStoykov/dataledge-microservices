@@ -1,12 +1,12 @@
-package org.dataledge.datasourceservice.data;
+package org.dataledge.datasourceservice.data.datasources;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.LastModifiedBy;
+import org.dataledge.datasourceservice.data.DataType;
 import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.Instant;
 import java.util.Date;
@@ -18,9 +18,14 @@ import java.util.Date;
 public class DataSource {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "id")
     private Long id;
     private String name;
-    private String type;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "type_id", nullable = false)
+    @JsonBackReference
+    private DataType type;
     private String description;
     private String url;
     @Column(nullable = false, updatable = false)

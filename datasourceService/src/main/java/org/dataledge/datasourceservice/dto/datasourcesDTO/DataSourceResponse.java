@@ -1,18 +1,12 @@
-package org.dataledge.datasourceservice.dto;
+package org.dataledge.datasourceservice.dto.datasourcesDTO;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.dataledge.datasourceservice.data.DataType;
 
 import java.time.Instant;
 import java.util.Date;
-import java.util.List;
-import org.dataledge.datasourceservice.data.DataSource;
-import org.springframework.data.annotation.LastModifiedDate;
 
 @Data
 @AllArgsConstructor
@@ -20,7 +14,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 public class DataSourceResponse {
     private Long id;
     private String name;
-    private String type;
+    private DataType type;
     private String description;
     private String url;
     private Instant created;

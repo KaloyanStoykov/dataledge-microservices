@@ -27,7 +27,7 @@ public class GatewayApplication {
         return builder.routes()
                 .route("userService", r->r.path("/users/**")
                         .uri("http://localhost:8081/"))
-                .route("datasourceService", r-> r.path("/datasources/**")
+                .route("datasourceService", r-> r.path("/datasources/**", "/datasource-types")
                         .uri("http://localhost:8082")).build();
     }
 

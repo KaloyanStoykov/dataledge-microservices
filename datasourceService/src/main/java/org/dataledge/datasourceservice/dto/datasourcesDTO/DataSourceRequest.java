@@ -1,4 +1,4 @@
-package org.dataledge.datasourceservice.dto;
+package org.dataledge.datasourceservice.dto.datasourcesDTO;
 
 
 
