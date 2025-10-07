@@ -24,21 +24,19 @@ pipeline {
         }
         
         stage('Build & Push Image') {
-            // Use withCredentials to securely handle the Dockerhub login
-            withCredentials([usernamePassword(credentialsId: 'dataledge-microservices', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                steps {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dataledge-microservices', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     dir('datasourceService') {
-                        // 1. Build the image with proper variable interpolation (using double quotes)
+                        // 1. Build the Docker image
                         sh "docker build -t $APP_NAME:$BUILD_NUMBER ."
 
-                        // 2. Login to Dockerhub
-                        // Use the securely injected variables DOCKER_USER and DOCKER_PASS
+                        // 2. Login to Docker Hub
                         sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
                         
                         // 3. Push the image
                         sh "docker push $APP_NAME:$BUILD_NUMBER"
 
-                        // (Optional) Logout for security
+                        // 4. (Optional) Logout for security
                         sh "docker logout"
                     }
                 }
