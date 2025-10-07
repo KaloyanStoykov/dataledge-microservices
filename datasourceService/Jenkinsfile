@@ -1,7 +1,6 @@
 pipeline {
-    agent any
+    agent { label 'docker-build' }
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dataledge-microservices')
         APP_NAME = "kiko12122/dataledge-microservices"
     }
 
@@ -9,38 +8,41 @@ pipeline {
         stage('Build') {
             steps {
                 dir('datasourceService'){
+                    // Clean, Compile, and Package the service
                     sh './mvnw -B -DskipTests clean package'
                 }
             }
         }
+        
         stage('Test') {
             steps {
                 dir('datasourceService'){
+                    // Run specific tests
                     sh './mvnw -Dtest=*ManagerTest test'
                 }
             }
         }
-        stage('Build image'){
-            steps {
-                dir('datasourceService'){
-                    sh 'docker build -t $APP_NAME:$BUILD_NUMBER .'
-                }
-            }
-        }
+        
+        stage('Build & Push Image') {
+            // Use withCredentials to securely handle the Dockerhub login
+            withCredentials([usernamePassword(credentialsId: 'dataledge-microservices', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                steps {
+                    dir('datasourceService') {
+                        // 1. Build the image with proper variable interpolation (using double quotes)
+                        sh "docker build -t $APP_NAME:$BUILD_NUMBER ."
 
-        stage('Login to Dockerhub'){
-            steps {
-                dir('datasourceService'){
-                    sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u DOCKERHUB_CREDENTIALS_USR --password-stdin'
-                }
-            }
-        }
+                        // 2. Login to Dockerhub
+                        // Use the securely injected variables DOCKER_USER and DOCKER_PASS
+                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                        
+                        // 3. Push the image
+                        sh "docker push $APP_NAME:$BUILD_NUMBER"
 
-        stage('Deploy'){
-            steps {
-                sh 'docker push $APP_NAME:BUILD_NUMBER'
+                        // (Optional) Logout for security
+                        sh "docker logout"
+                    }
+                }
             }
         }
     }
 }
-
