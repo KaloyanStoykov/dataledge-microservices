@@ -1,13 +1,46 @@
 pipeline {
-    agent any
+    agent { label 'docker-build' }
+    environment {
+        APP_NAME = "kiko12122/dataledge-microservices"
+    }
+
     stages {
         stage('Build') {
             steps {
                 dir('datasourceService'){
+                    // Clean, Compile, and Package the service
                     sh './mvnw -B -DskipTests clean package'
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                dir('datasourceService'){
+                    // Run specific tests
+                    sh './mvnw -Dtest=*ManagerTest test'
+                }
+            }
+        }
+        
+        stage('Build & Push Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dataledge-microservices', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    dir('datasourceService') {
+                        // 1. Build the Docker image
+                        sh "docker build -t $APP_NAME:$BUILD_NUMBER ."
+
+                        // 2. Login to Docker Hub
+                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                        
+                        // 3. Push the image
+                        sh "docker push $APP_NAME:$BUILD_NUMBER"
+
+                        // 4. (Optional) Logout for security
+                        sh "docker logout"
+                    }
                 }
             }
         }
     }
 }
-
