@@ -16,7 +16,7 @@ pipeline {
 
         stage('SonarCloud analysis'){
             steps {
-                withSonarQubeEnv(){
+                withSonarQubeEnv(credentialsId: '7e584476-a3ff-43e1-b2b8-d9ab1436a78f', installationName: 'SonarCloud'){
                     sh 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.11.0.3922:sonar'
                 }
             }
