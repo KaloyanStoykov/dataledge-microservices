@@ -3,11 +3,40 @@ spring:
     gateway:
       server:
         webflux:
+          routes:
+            # 1. Route for the /datasources controller endpoints
+            - id: datasource-service-main
+              uri: lb://DATASOURCESERVICE
+              predicates:
+                - Path=/datasources/**
+
+            # 2. Route for the /datasource-types controller endpoints
+            - id: datasource-service-types
+              uri: lb://DATASOURCESERVICE
+              predicates:
+                - Path=/datasource-types/**
           globalcors:
             cors-configurations:
               '[/**]':
-                          allowedOrigins: "http://localhost:5173"
-                          allowedMethods:
-                            - GET
-                            - POST
-                          allowedHeaders: "*"
+                allowedOrigins: "http://localhost:5173"
+                allowedMethods:
+                  - GET
+                  - POST
+                allowedHeaders: "*"
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      authCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 10
+        permittedNumberOfCallsInHalfOpenState: 10
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5000
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        record-exceptions:
+          - java.util.concurrent.TimeoutException
+          - org.springframework.cloud.gateway.support.NotFoundException
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException

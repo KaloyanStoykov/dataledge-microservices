@@ -15,21 +15,6 @@ import reactor.core.publisher.Mono;
 @SpringBootApplication
 @RestController
 public class GatewayApplication {
-    @RequestMapping("/fallback")
-    public Mono<String> fallback() {
-        return Mono.just("fallback");
-    }
-
-
-
-    @Bean
-    public RouteLocator myRoutes(RouteLocatorBuilder builder, UriConfiguration uriConfiguration) {
-        return builder.routes()
-                .route("userService", r->r.path("/users/**")
-                        .uri("http://localhost:8081/"))
-                .route("datasourceService", r-> r.path("/datasources/**", "/datasource-types")
-                        .uri("http://localhost:8082")).build();
-    }
 
     public static void main(String[] args) {
         SpringApplication.run(GatewayApplication.class, args);
