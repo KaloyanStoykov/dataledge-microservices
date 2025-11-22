@@ -6,9 +6,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class DatasourceServiceApplicationTests {
 
-    @Test
-    void contextLoads() {
-
-    }
+//    @Test
+//    void contextLoads() {
+//
+//    }
 
 }

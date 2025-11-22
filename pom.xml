@@ -10,6 +10,8 @@
   <url>http://maven.apache.org</url>
     <modules>
         <module>userService</module>
+        <module>datasourceService</module>
+        <module>eureka_server</module>
     </modules>
     <licenses>
     </licenses>
