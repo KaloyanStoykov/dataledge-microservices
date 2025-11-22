@@ -1,4 +1,4 @@
-package org.dataledge.identityservice.config.exceptions;
+package org.dataledge.identityservice.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,4 +16,3 @@ public class ErrorResponse {
         this.message = message;
     }
 }
-

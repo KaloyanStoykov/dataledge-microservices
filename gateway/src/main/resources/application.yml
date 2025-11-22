@@ -9,12 +9,23 @@ spring:
               uri: lb://DATASOURCESERVICE
               predicates:
                 - Path=/datasources/**
+              filters:
+                - AuthenticationFilter
 
             # 2. Route for the /datasource-types controller endpoints
             - id: datasource-service-types
               uri: lb://DATASOURCESERVICE
               predicates:
                 - Path=/datasource-types/**
+              filters:
+                - AuthenticationFilter
+
+            - id: identity-service
+              uri: lb://IDENTITY-SERVICE
+              predicates:
+                - Path=/auth/**
+              filters:
+                - AuthenticationFilter
           globalcors:
             cors-configurations:
               '[/**]':
