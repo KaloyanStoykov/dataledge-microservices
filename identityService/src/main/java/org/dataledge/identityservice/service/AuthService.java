@@ -9,11 +9,10 @@ import org.dataledge.identityservice.dto.auth.User;
 import org.dataledge.identityservice.entity.UserCredential;
 import org.dataledge.identityservice.repository.UserCredentialRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,13 +32,10 @@ public class AuthService {
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    private UserCredentialRepository userRepository;
-
-    @Autowired
-    private JWTService jwtService;
+    private JwtUtil jwtService;
 
     public SignUpResponse saveUser(UserCredential userCredential) {
-        Optional<UserCredential> existingCredential = userRepository.findByEmail(userCredential.getEmail());
+        Optional<UserCredential> existingCredential = repository.findByEmail(userCredential.getEmail());
         if (existingCredential.isPresent()) {
             throw new ExistingEmailException("Email already exists!");
         }
@@ -51,13 +47,21 @@ public class AuthService {
     public AuthResponse authenticate(AuthRequest req) {
         AuthResponse response = new AuthResponse();
         try {
-            Authentication authenticate = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
+            Authentication authenticate = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
+            );
+
             if(authenticate.isAuthenticated()) {
                 CustomUserDetails principal = (CustomUserDetails)authenticate.getPrincipal();
-                Optional<UserCredential> credential = userRepository.findByEmail(principal.getUsername());
-                // Check for user stored in db and map to dto.
-                credential.ifPresent(userCredential -> response.setUser(new User(userCredential.getId(), userCredential.getEmail(), userCredential.getName())));
-                response.setJwtToken(generateToken(req.getEmail()));
+
+                Optional<UserCredential> credential = repository.findByEmail(principal.getUsername());
+
+                credential.ifPresent(userCredential ->
+                        response.setUser(new User(userCredential.getId(), userCredential.getEmail(), userCredential.getName()))
+                );
+
+                // Generate token using the principal (UserDetails)
+                response.setJwtToken(jwtService.generateToken(principal));
                 return response;
             }
         }
@@ -67,11 +71,36 @@ public class AuthService {
         return response;
     }
 
-    public String generateToken(String email) {
-        return jwtService.generateToken(email);
+
+    public String generateToken(UserDetails details) {
+        return jwtService.generateToken(details);
     }
 
+    public void validateToken(String token, UserDetails details) {
+        jwtService.validateToken(token, details);
+    }
+
+    // 2. Validate structure/expiration only (Used by /validate endpoint)
     public void validateToken(String token) {
         jwtService.validateToken(token);
+    }
+
+    public User checkAuth(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.isAuthenticated() && !(authentication instanceof AnonymousAuthenticationToken)) {
+
+            // 1. Get the email from the session/token
+            String email = authentication.getName();
+
+            // 2. Fetch the full user details from the DB
+            UserCredential user = repository.findByEmail(email).orElseThrow(() -> new BadCredentialsException("User not found!"));
+
+
+            // 3. Return the DTO with ID, Name, and Email
+            return new User(user.getId(), user.getName(), user.getEmail());
+        }
+
+        throw new AuthenticationCredentialsNotFoundException("User is currently not authenticated");
     }
 }

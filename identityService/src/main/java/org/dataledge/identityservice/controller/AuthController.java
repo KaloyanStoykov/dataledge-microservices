@@ -1,13 +1,21 @@
 package org.dataledge.identityservice.controller;
 
-import org.apache.tomcat.websocket.AuthenticationException;
+import jakarta.servlet.http.HttpServletResponse;
 import org.dataledge.identityservice.dto.auth.AuthRequest;
 import org.dataledge.identityservice.dto.auth.AuthResponse;
 import org.dataledge.identityservice.dto.auth.SignUpResponse;
+import org.dataledge.identityservice.dto.auth.User;
 import org.dataledge.identityservice.entity.UserCredential;
 import org.dataledge.identityservice.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,6 +23,9 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     @Autowired
     private AuthService authService;
+
+    @Value("${JWT_EXPIRATION_MS}")
+    private int jwtExpirationMs;
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -24,14 +35,46 @@ public class AuthController {
         return authService.saveUser(user);
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<?> logoutUser(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("accessToken", "") // Empty value
+                .httpOnly(true)
+                .secure(false) // strict HTTPS check (keep consistent with login)
+                .path("/")     // Must match the login path exactly
+                .maxAge(0)     // 0 seconds = expire immediately
+                .sameSite("Lax")
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        return ResponseEntity.ok("Logged out successfully");
+    }
+
     @PostMapping("/authenticate")
-    public @ResponseBody AuthResponse getToken(@RequestBody AuthRequest req) {
-        return authService.authenticate(req);
+    public ResponseEntity<User> getToken(@RequestBody AuthRequest req, HttpServletResponse response) {
+        var result = authService.authenticate(req);
+
+        ResponseCookie cookie = ResponseCookie.from("accessToken", result.getJwtToken())
+                .httpOnly(true)
+                .secure(false) // For HTTp
+                .path("/")
+                .maxAge(jwtExpirationMs)
+                .sameSite("Lax")
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        return ResponseEntity.ok(result.getUser());
     }
 
     @GetMapping("/validate")
     public String validateToken(@RequestParam("token") String token){
         authService.validateToken(token);
         return "Token is valid";
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<User> getCurrentUser() {
+        return ResponseEntity.ok(authService.checkAuth());
     }
 }

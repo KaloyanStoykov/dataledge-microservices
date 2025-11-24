@@ -6,6 +6,7 @@ import jakarta.ws.rs.NotFoundException;
 import org.dataledge.identityservice.config.exceptions.ExistingEmailException;
 import org.dataledge.identityservice.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -50,5 +51,12 @@ public class GlobalExceptionHandler {
     public ErrorResponse handleConstraintViolation(ConstraintViolationException ex) {
 
         return new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Invalid fields! Please try again!");
+    }
+
+    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleConstraintViolation(AuthenticationCredentialsNotFoundException ex) {
+
+        return new ErrorResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
     }
 }
