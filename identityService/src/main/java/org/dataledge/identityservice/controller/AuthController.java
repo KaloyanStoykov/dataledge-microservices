@@ -36,7 +36,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logoutUser(HttpServletResponse response) {
+    public ResponseEntity<String> logoutUser(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from("accessToken", "") // Empty value
                 .httpOnly(true)
                 .secure(false) // strict HTTPS check (keep consistent with login)
