@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="FrameworkDetectionExcludesConfiguration">
+    <file type="web" url="file://$PROJECT_DIR$/identity" />
     <file type="web" url="file://$PROJECT_DIR$/userService" />
   </component>
   <component name="MavenProjectsManager">
@@ -11,6 +12,7 @@
         <option value="$PROJECT_DIR$/userAPI/pom.xml" />
         <option value="$PROJECT_DIR$/eureka_server/pom.xml" />
         <option value="$PROJECT_DIR$/datasourceService/pom.xml" />
+        <option value="$PROJECT_DIR$/identityService/pom.xml" />
       </list>
     </option>
   </component>

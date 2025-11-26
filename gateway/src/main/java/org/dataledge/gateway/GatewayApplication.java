@@ -1,5 +1,6 @@
 package org.dataledge.gateway;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,23 +16,15 @@ import reactor.core.publisher.Mono;
 @SpringBootApplication
 @RestController
 public class GatewayApplication {
-    @RequestMapping("/fallback")
-    public Mono<String> fallback() {
-        return Mono.just("fallback");
-    }
-
-
-
-    @Bean
-    public RouteLocator myRoutes(RouteLocatorBuilder builder, UriConfiguration uriConfiguration) {
-        return builder.routes()
-                .route("userService", r->r.path("/users/**")
-                        .uri("http://localhost:8081/"))
-                .route("datasourceService", r-> r.path("/datasources/**", "/datasource-types")
-                        .uri("http://localhost:8082")).build();
-    }
 
     public static void main(String[] args) {
+        // Load the .env file from the current working directory
+        Dotenv dotenv = Dotenv.load();
+        System.setProperty("JWT_SECRET", dotenv.get("JWT_SECRET"));
+        System.setProperty("JWT_EXPIRATION_MS", dotenv.get("JWT_EXPIRATION_MS"));
+
+        // --- End of .env Loading ---
+
         SpringApplication.run(GatewayApplication.class, args);
     }
 

@@ -1,4 +1,4 @@
-package $org.dataledge;
+package org.dataledge;
 
 /**
  * Hello world!
