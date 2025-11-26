@@ -1,5 +1,6 @@
 package org.dataledge.identityservice.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.dataledge.identityservice.dto.auth.AuthRequest;
 import org.dataledge.identityservice.dto.auth.AuthResponse;
@@ -65,6 +66,12 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return ResponseEntity.ok(result.getUser());
+    }
+
+    @GetMapping("/header")
+    public String testHeader(HttpServletRequest request) {
+        String userId = request.getHeader("X-User-ID");
+        return userId;
     }
 
     @GetMapping("/validate")

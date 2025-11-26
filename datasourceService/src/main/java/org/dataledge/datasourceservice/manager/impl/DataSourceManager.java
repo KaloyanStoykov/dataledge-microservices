@@ -6,10 +6,7 @@ import org.dataledge.datasourceservice.data.DataType;
 import org.dataledge.datasourceservice.data.DataTypeRepo;
 import org.dataledge.datasourceservice.data.datasources.DataSource;
 import org.dataledge.datasourceservice.data.datasources.DataSourceRepo;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceRequest;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceResponse;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.DataSourceResponse;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.GetDataSourcesResponse;
+import org.dataledge.datasourceservice.dto.datasourcesDTO.*;
 import org.dataledge.datasourceservice.manager.IDataSourceMapper;
 import org.dataledge.datasourceservice.manager.IDataSourceManager;
 import org.springframework.data.domain.Page;
@@ -17,11 +14,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * @author Kaloyan Stoykov
+ * Handles business logic for deletion and creation of datasources
  */
 @Service
 @AllArgsConstructor
@@ -40,12 +39,18 @@ public class DataSourceManager implements IDataSourceManager {
      * @throws NotFoundException when no items were found from the repository
      */
     @Override
-    public GetDataSourcesResponse getDataSources(int pageNumber, int pageSize) {
+    public GetDataSourcesResponse getDataSources(String userId, int pageNumber, int pageSize) {
 
-        Page<DataSource> pageResult = dataSourceRepo.findAll(PageRequest.of(pageNumber, pageSize));
+        Page<DataSource> pageResult = dataSourceRepo.findAllByUserId(
+                Integer.parseInt(userId),
+                PageRequest.of(pageNumber, pageSize)
+        );
+
+
 
         if (pageResult.isEmpty()) {
-            throw new NotFoundException("No data sources found");
+            // Change the exception message slightly to reflect the filter context
+            throw new NotFoundException("No data sources found ");
         }
 
         List<DataSourceResponse> items = pageResult.getContent()
@@ -54,15 +59,25 @@ public class DataSourceManager implements IDataSourceManager {
                 .toList();
 
         return new GetDataSourcesResponse(items, pageResult.getTotalElements(), pageNumber, pageSize);
-
     }
 
+
     @Override
-    public CreateDataSourceResponse createDataSource(CreateDataSourceRequest request) {
+    public CreateDataSourceResponse createDataSource(String userId, CreateDataSourceRequest request) {
         Optional<DataType> type = dataTypeRepo.findById(request.getTypeId());
+        int uId = Integer.parseInt(userId);
 
         if(type.isPresent()) {
-            DataSource dataSource = new DataSource(null, request.getName(), type.get(), request.getDescription(), request.getUrl(), Instant.now(), null);
+            DataSource dataSource = DataSource.builder()
+                    .id(null)
+                    .name(request.getName())
+                    .type(type.get())
+                    .description(request.getDescription())
+                    .url(request.getUrl())
+                    .created(Instant.now())
+                    .updated(Date.from(Instant.now()))
+                    .userId(uId)
+                    .build();
             DataSource entity = dataSourceRepo.save(dataSource);
             return new CreateDataSourceResponse(entity.getId(), entity.getName());
         }
@@ -72,6 +87,15 @@ public class DataSourceManager implements IDataSourceManager {
 
     }
 
+    @Override
+    public DeleteDataSourceResponse deleteDataSource(int id) {
+        DataSource dataSource = dataSourceRepo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Unknown datasource id"));
+
+        dataSourceRepo.delete(dataSource);
+
+        return new DeleteDataSourceResponse("Datasource deleted successfully!");
+    }
 
 
 }

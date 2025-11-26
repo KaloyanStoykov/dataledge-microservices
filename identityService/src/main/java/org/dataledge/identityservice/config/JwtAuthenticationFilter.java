@@ -25,11 +25,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private JwtUtil jwtUtil;
 
-    // You must implement this interface in your project
     @Autowired
     private UserDetailsService userDetailsService;
 
-    // Change this to match the exact name of the cookie set by your Gateway
     private static final String COOKIE_NAME = "accessToken";
 
     @Override
@@ -37,26 +35,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String token = null;
-        String username = null;
+        String email;
 
         // 2. If Header is missing, try to get token from Cookies
         if (request.getCookies() != null) {
             token = Arrays.stream(request.getCookies())
                     .filter(c -> COOKIE_NAME.equals(c.getName()))
                     .map(Cookie::getValue)
+                    .map(String::trim)
                     .findFirst()
                     .orElse(null);
         }
 
         if (token != null) {
             try {
-                username = jwtUtil.extractUsername(token);
+                email = jwtUtil.extractUsername(token);
+                logger.info("Email is " + email);
 
                 var currentAuth = SecurityContextHolder.getContext().getAuthentication();
 
-                if (username != null && (currentAuth == null || "anonymousUser".equals(currentAuth.getName()))) {
+                if (email != null && (currentAuth == null || "anonymousUser".equals(currentAuth.getName()))) {
 
-                    UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+                    UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
 
                     if (jwtUtil.validateToken(token, userDetails)) {
                         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -68,7 +68,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
                 }
             } catch (Exception e) {
-                logger.error("JWT Authentication failed: " + e.getMessage());
+                logger.error("JWT Authentication failed: " + e.getLocalizedMessage());
             }
         }
 

@@ -56,13 +56,21 @@ public class AuthService {
 
                 Optional<UserCredential> credential = repository.findByEmail(principal.getUsername());
 
-                credential.ifPresent(userCredential ->
-                        response.setUser(new User(userCredential.getId(), userCredential.getEmail(), userCredential.getName()))
-                );
+                if (credential.isPresent()) {
+                    UserCredential userCredential = credential.get();
 
-                // Generate token using the principal (UserDetails)
-                response.setJwtToken(jwtService.generateToken(principal));
-                return response;
+                    response.setUser(new User(userCredential.getId(), userCredential.getEmail(), userCredential.getName()));
+
+                    String email = String.valueOf(userCredential.getEmail());
+                    String userId = String.valueOf(userCredential.getId());
+
+                    response.setJwtToken(jwtService.generateToken(email, userId));
+
+                    return response;
+                } else {
+                    // Should not happen if authentication passed, but good for safety
+                    throw new BadCredentialsException("User credential not found after successful authentication.");
+                }
             }
         }
         catch (AuthenticationException e) {
@@ -72,13 +80,8 @@ public class AuthService {
     }
 
 
-    public String generateToken(UserDetails details) {
-        return jwtService.generateToken(details);
-    }
 
-    public void validateToken(String token, UserDetails details) {
-        jwtService.validateToken(token, details);
-    }
+
 
     // 2. Validate structure/expiration only (Used by /validate endpoint)
     public void validateToken(String token) {
@@ -90,7 +93,7 @@ public class AuthService {
 
         if (authentication != null && authentication.isAuthenticated() && !(authentication instanceof AnonymousAuthenticationToken)) {
 
-            // 1. Get the email from the session/token
+            // 1. Get the id from the session/token
             String email = authentication.getName();
 
             // 2. Fetch the full user details from the DB
