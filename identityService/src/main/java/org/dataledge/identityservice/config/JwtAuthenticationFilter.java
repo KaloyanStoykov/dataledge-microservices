@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.dataledge.identityservice.service.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -19,44 +20,62 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Arrays;
 
+/***
+ * @author kiko
+ * Handles jwt authentication requests to the gateway
+ */
+@Slf4j
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    // Utilities to extract claims and username from token
     @Autowired
     private JwtUtil jwtUtil;
 
-    // You must implement this interface in your project
     @Autowired
     private UserDetailsService userDetailsService;
 
-    // Change this to match the exact name of the cookie set by your Gateway
+    // Cookie header name
     private static final String COOKIE_NAME = "accessToken";
 
+    /***
+     *
+     * @param request incoming request from API call
+     * @param response to be modified with JWT token and claims
+     * @param chain filter chain that processes the request
+     * @throws ServletException
+     * @throws IOException
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
         String token = null;
-        String username = null;
+        String email;
 
-        // 2. If Header is missing, try to get token from Cookies
+        // Try to get token from header
         if (request.getCookies() != null) {
             token = Arrays.stream(request.getCookies())
                     .filter(c -> COOKIE_NAME.equals(c.getName()))
                     .map(Cookie::getValue)
+                    .map(String::trim)
                     .findFirst()
                     .orElse(null);
         }
-
+        // Token found
         if (token != null) {
             try {
-                username = jwtUtil.extractUsername(token);
+                log.info("Attempting to authenticate using JWT Token");
+                email = jwtUtil.extractUsername(token);
+
 
                 var currentAuth = SecurityContextHolder.getContext().getAuthentication();
 
-                if (username != null && (currentAuth == null || "anonymousUser".equals(currentAuth.getName()))) {
-
-                    UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+                // Check for anonymous user token
+                if (email != null && (currentAuth == null || "anonymousUser".equals(currentAuth.getName()))) {
+                    log.info("User is authenticated");
+                    // Add logged in userDetails
+                    UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
 
                     if (jwtUtil.validateToken(token, userDetails)) {
                         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -68,7 +87,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
                 }
             } catch (Exception e) {
-                logger.error("JWT Authentication failed: " + e.getMessage());
+                log.error("JWT Authentication failed: {}", e.getLocalizedMessage());
             }
         }
 

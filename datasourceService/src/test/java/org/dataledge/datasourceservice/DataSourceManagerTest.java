@@ -5,10 +5,7 @@ import org.dataledge.datasourceservice.data.DataType;
 import org.dataledge.datasourceservice.data.DataTypeRepo;
 import org.dataledge.datasourceservice.data.datasources.DataSource;
 import org.dataledge.datasourceservice.data.datasources.DataSourceRepo;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceRequest;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceResponse;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.DataSourceResponse;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.GetDataSourcesResponse;
+import org.dataledge.datasourceservice.dto.datasourcesDTO.*;
 import org.dataledge.datasourceservice.manager.IDataSourceMapper;
 import org.dataledge.datasourceservice.manager.impl.DataSourceManager;
 import org.dataledge.datasourceservice.manager.impl.DataSourceMapper;
@@ -57,8 +54,28 @@ public class DataSourceManagerTest {
 
 
         // Mock entities and DTOs
-        DataSource entity1 = new DataSource(1L, "Customer DB", dataType, "Customer DB for Censly.", "jdbc:postgresql://localhost:5432/customers", Instant.now(), Date.from(Instant.parse("2019-04-20T00:00:00Z")));
-        DataSource entity2 = new DataSource(2L, "Customer DB2", dataType, "Customer DB for Censly.", "jdbc:postgresql://localhost:5432/customers", Instant.now(), Date.from(Instant.parse("2019-04-20T00:00:00Z")));
+        DataSource entity1 = DataSource.builder()
+                .id(1L)
+                .name("Test Name")
+                .type(dataType)
+                .description("Test Description")
+                .url("http://test-url.com")
+                .created(Instant.now())
+                .updated(new Date())
+                .userId(1) // explicitly set the userId
+                .build();
+
+        DataSource entity2 = DataSource.builder()
+                .id(1L)
+                .name("Test Name")
+                .type(dataType)
+                .description("Test Description")
+                .url("http://test-url.com")
+                .created(Instant.now())
+                .updated(new Date())
+                .userId(1) // explicitly set the userId
+                .build();
+
         DataSourceResponse dto1 = new DataSourceResponse(1L, "Customer DB", dataType, "Customer DB for Censly.", "jdbc:postgresql://localhost:5432/customers", Instant.now(), Date.from(Instant.parse("2019-04-20T00:00:00Z")));
         DataSourceResponse dto2 = new DataSourceResponse(2L, "Customer DB2", dataType, "Customer DB for Censly.", "jdbc:postgresql://localhost:5432/customers", Instant.now(), Date.from(Instant.parse("2019-04-20T00:00:00Z")));
 
@@ -66,7 +83,7 @@ public class DataSourceManagerTest {
         Page<DataSource> page = new PageImpl<>(entities, PageRequest.of(pageNumber, pageSize), totalElements);
 
         // Mock repository call
-        when(dataSourceRepo.findAll(PageRequest.of(pageNumber, pageSize)))
+        when(dataSourceRepo.findAllByUserId(1, PageRequest.of(pageNumber, pageSize)))
                 .thenReturn(page);
 
         // Mock mapping
@@ -74,11 +91,11 @@ public class DataSourceManagerTest {
         when(mapper.toDataSourceResponse(entity2)).thenReturn(dto2);
 
         // Act
-        GetDataSourcesResponse response = dataSourceManager.getDataSources(pageNumber, pageSize);
+        GetDataSourcesResponse response = dataSourceManager.getDataSources("1", pageNumber, pageSize);
 
         // Assert
         assertThat(response.getItems()).hasSize(2);
-        for(var  entity : response.getItems()) {
+        for(var entity : response.getItems()) {
             assertThat(entity.getType()).isEqualTo(dataType);
         }
         assertThat(response.getTotalCount()).isEqualTo(totalElements);
@@ -86,7 +103,7 @@ public class DataSourceManagerTest {
         assertThat(response.getPageSize()).isEqualTo(pageSize);
 
         // Verify
-        verify(dataSourceRepo).findAll(PageRequest.of(pageNumber, pageSize));
+        verify(dataSourceRepo).findAllByUserId(1, PageRequest.of(pageNumber, pageSize));
         verify(mapper).toDataSourceResponse(entity1);
         verify(mapper).toDataSourceResponse(entity2);
     }
@@ -99,9 +116,9 @@ public class DataSourceManagerTest {
 
         Page<DataSource> page = new PageImpl<>(List.of(), PageRequest.of(pageNumber, pageSize), totalElements);
 
-        when(dataSourceRepo.findAll(PageRequest.of(pageNumber, pageSize))).thenReturn(page);
+        when(dataSourceRepo.findAllByUserId(1, PageRequest.of(pageNumber, pageSize))).thenReturn(page);
 
-        assertThrows(NotFoundException.class, () -> dataSourceManager.getDataSources(pageNumber, pageSize));
+        assertThrows(NotFoundException.class, () -> dataSourceManager.getDataSources("1", pageNumber, pageSize));
 
     }
 
@@ -116,21 +133,22 @@ public class DataSourceManagerTest {
         request.setDescription("Test Description");
         request.setUrl("jdbc:postgresql://localhost:5432/test");
 
-        DataSource savedEntity = new DataSource(
-                1L,
-                request.getName(),
-                dataType,
-                request.getDescription(),
-                request.getUrl(),
-                Instant.now(),
-                null
-        );
+        DataSource savedEntity = DataSource.builder()
+                .id(1L)
+                .name("Test Name")
+                .type(dataType)
+                .description("Test Description")
+                .url("http://test-url.com")
+                .created(Instant.now())
+                .updated(new Date())
+                .userId(1) // explicitly set the userId
+                .build();
 
 
         when(dataSourceRepo.save(any(DataSource.class))).thenReturn(savedEntity);
         when(dataTypeRepo.findById(1L)).thenReturn(Optional.of(dataType));
 
-        CreateDataSourceResponse response = dataSourceManager.createDataSource(request);
+        CreateDataSourceResponse response = dataSourceManager.createDataSource("1", request);
 
         assertThat(response).isNotNull();
         assertThat(response.getId()).isEqualTo(1L);
@@ -146,6 +164,41 @@ public class DataSourceManagerTest {
         assertThat(passedEntity.getDescription()).isEqualTo("Test Description");
         assertThat(passedEntity.getUrl()).isEqualTo("jdbc:postgresql://localhost:5432/test");
         assertThat(passedEntity.getCreated()).isNotNull(); // assuming that's what Instant.now() is mapped to
+    }
+
+    @Test
+    void deleteDataSource_success() {
+        int dataSourceId = 1;
+        DataSource mockEntity = DataSource.builder()
+                .id((long) dataSourceId)
+                .name("To Be Deleted")
+                .build();
+
+        when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));
+
+        DeleteDataSourceResponse response = dataSourceManager.deleteDataSource(dataSourceId);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getMessage()).isEqualTo("Datasource deleted successfully!");
+
+        verify(dataSourceRepo).findById(dataSourceId);
+        verify(dataSourceRepo).delete(mockEntity);
+    }
+
+    @Test
+    void deleteDataSource_notFound_throwsException() {
+        int nonExistentId = 99;
+
+        when(dataSourceRepo.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
+            dataSourceManager.deleteDataSource(nonExistentId);
+        });
+
+        assertThat(thrown.getMessage()).isEqualTo("Unknown datasource id");
+
+        verify(dataSourceRepo).findById(nonExistentId);
+        verify(dataSourceRepo, never()).delete(any(DataSource.class));
     }
 
 

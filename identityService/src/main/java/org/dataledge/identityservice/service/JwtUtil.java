@@ -26,7 +26,19 @@ public class JwtUtil {
     @Value("${JWT_EXPIRATION_MS}")
     private long jwtExpiration;
 
-    // 1. Extract Username from Token
+    // Extract the custom User ID claim ---
+    /**
+     * Extracts the User ID stored in the custom 'userId' claim.
+     * @param token The JWT string.
+     * @return The User ID as a String.
+     */
+    public String extractUserIdClaim(String token) {
+        // Safely extract the custom claim and cast it as String
+        return extractClaim(token, claims -> claims.get("userId", String.class));
+    }
+    // ----------------------------------------------------
+
+    // 1. Extract Username/Email from Token (Using the standard subject claim)
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -56,13 +68,12 @@ public class JwtUtil {
         return extractExpiration(token).before(new Date());
     }
 
-    // --- OVERLOADED METHOD 1: Validate with UserDetails ---
+    // Validation is strictly against the standard subject (email)
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
-    // --- OVERLOADED METHOD 2: Validate String only ---
     public void validateToken(final String token) {
         Jwts.parser()
                 .verifyWith(getSignKey())
@@ -70,18 +81,19 @@ public class JwtUtil {
                 .parseSignedClaims(token);
     }
 
-    // --- OVERLOADED METHOD 3: Generate from String ---
-    public String generateToken(String userName) {
+    /**
+     * Generates a token setting the Email as the standard subject and the ID as a custom claim.
+     * @param email The user's email (used as subject).
+     * @param userId The user's ID (used as custom claim 'userId').
+     * @return The JWT string.
+     */
+    public String generateToken(String email, String userId) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, userName);
+        claims.put("userId", userId);
+        return createToken(claims, email);
     }
 
-    // --- OVERLOADED METHOD 4: Generate from UserDetails ---
-    public String generateToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-        // Example: claims.put("roles", userDetails.getAuthorities());
-        return createToken(claims, userDetails.getUsername());
-    }
+
 
     // Internal Token Creation
     private String createToken(Map<String, Object> claims, String subject) {
@@ -95,7 +107,6 @@ public class JwtUtil {
     }
 
     // Helper to decode base64 secret key
-    // Changed return type from Key to SecretKey for better type safety with verifyWith
     private SecretKey getSignKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
         return Keys.hmacShaKeyFor(keyBytes);

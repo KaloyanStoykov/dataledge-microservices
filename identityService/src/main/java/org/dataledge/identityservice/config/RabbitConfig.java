@@ -1,6 +1,7 @@
-package org.dataledge.datasourceservice.config.rabbitmq;
+package org.dataledge.identityservice.config;
 
-import org.springframework.amqp.core.*;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -10,28 +11,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitConfig {
-
-    public static final String QUEUE_NAME = "datasource.user-cleanup.queue";
-
-    public static final String EXCHANGE_NAME = "user.exchange";
-
-    public static final String ROUTING_KEY = "user.deleted";
-
-
-    @Bean
-    public Queue queue() {
-        return new Queue(QUEUE_NAME, true); // true = durable (survives restart)
-    }
-
-    @Bean
-    public TopicExchange exchange() {
-        return new TopicExchange(EXCHANGE_NAME);
-    }
-
-    @Bean
-    public Binding binding(Queue queue, TopicExchange exchange) {
-        return BindingBuilder.bind(queue).to(exchange).with(ROUTING_KEY);
-    }
 
     @Bean
     public MessageConverter converter() {

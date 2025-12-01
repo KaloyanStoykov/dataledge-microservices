@@ -1,6 +1,8 @@
 package org.dataledge.identityservice.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.dataledge.identityservice.dto.UserDeletedResponse;
 import org.dataledge.identityservice.dto.auth.AuthRequest;
 import org.dataledge.identityservice.dto.auth.AuthResponse;
 import org.dataledge.identityservice.dto.auth.SignUpResponse;
@@ -65,6 +67,27 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return ResponseEntity.ok(result.getUser());
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<UserDeletedResponse> deleteUser(@PathVariable int id,
+                                                          HttpServletResponse response,
+                                                          @RequestHeader("X-User-ID")  String userId) {
+
+        ResponseCookie cookie = ResponseCookie.from("accessToken", "") // Празно
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        authService.deletePersonalAccount(id, Integer.valueOf(userId));
+
+
+
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/validate")

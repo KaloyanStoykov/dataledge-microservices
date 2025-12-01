@@ -3,38 +3,42 @@ spring:
     gateway:
       server:
         webflux:
-          routes:
-            # 1. Route for the /datasources controller endpoints
-            - id: datasource-service-main
-              uri: lb://DATASOURCESERVICE
-              predicates:
-                - Path=/datasources/**
-              filters:
-                - AuthenticationFilter
-
-            # 2. Route for the /datasource-types controller endpoints
-            - id: datasource-service-types
-              uri: lb://DATASOURCESERVICE
-              predicates:
-                - Path=/datasource-types/**
-              filters:
-                - AuthenticationFilter
-
-            - id: identity-service
-              uri: lb://IDENTITY-SERVICE
-              predicates:
-                - Path=/auth/**
-              filters:
-                - AuthenticationFilter
           globalcors:
             cors-configurations:
               '[/**]':
-                allowedOrigins: "http://localhost:5173"
-                allowedMethods:
-                  - GET
-                  - POST
-                allowedHeaders: "*"
+                          allowedOrigins: "http://localhost:5173"
+                          allowedMethods:
+                            - GET
+                            - POST
+                            - PUT
+                            - DELETE
+                            - OPTIONS
+                          allowedHeaders: "*"
+                          allowCredentials: true
+          routes:
+            # Route for /datasources
+                    - id: datasource-service-main
+                      uri: lb://DATASOURCE-SERVICE
+                      predicates:
+                        - Path=/datasources/**
+                      filters:
+                        - AuthenticationFilter
 
+                    # Route for /datasource-types
+                    - id: datasource-service-types
+                      uri: lb://DATASOURCE-SERVICE
+                      predicates:
+                        - Path=/datasource-types/**
+                      filters:
+                        - AuthenticationFilter
+
+                    # Route for Identity Service
+                    - id: identity-service
+                      uri: lb://IDENTITY-SERVICE
+                      predicates:
+                        - Path=/auth/**
+                      filters:
+                        - AuthenticationFilter
 resilience4j:
   circuitbreaker:
     instances:

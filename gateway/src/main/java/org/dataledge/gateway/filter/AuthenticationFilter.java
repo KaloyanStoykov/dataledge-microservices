@@ -1,63 +1,76 @@
 package org.dataledge.gateway.filter;
 
-import org.apache.http.HttpHeaders;
+import org.dataledge.gateway.config.exceptions.UnauthorizedException;
 import org.dataledge.gateway.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.http.HttpCookie;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 @Component
+@Slf4j
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
 
     @Autowired
     private RouteValidator validator;
 
     @Autowired
-    private RestTemplate restTemplate;
-
-    @Autowired
     private JwtUtil jwtUtil;
-
 
     public AuthenticationFilter() {
         super(Config.class);
     }
 
-    /**
-     * @param config
-     * @return
-     */
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
-            if(validator.isSecured.test(request)){
-                // check header contains token
-                if(!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                    throw new RuntimeException("Missing authorization header");
+
+            // 1. Check if the route requires security
+            if (validator.isSecured.test(request)) {
+
+                String token = null;
+
+                // 2. STRATEGY A: Try to get Token from Cookies (Priority for Frontend)
+                if (request.getCookies().containsKey("accessToken")) {
+                    HttpCookie cookie = request.getCookies().getFirst("accessToken");
+                    if (cookie != null) {
+                        token = cookie.getValue();
+                    }
                 }
 
-                String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-                if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                    // Remove substring
-                    authHeader = authHeader.substring(7);
+                // 4. If we still don't have a token, throw error
+                if (token == null) {
+                    throw new UnauthorizedException("Missing authorization cookie or header");
                 }
-                try{
-                    jwtUtil.validateToken(authHeader);
-                }catch(Exception e){
-                    // Unauthorized
-                    System.out.println(e.getMessage());
-                    throw new RuntimeException("Unauthorized");
+
+                // 5. Validate the found token
+                try {
+                    jwtUtil.validateToken(token);
+
+                    String userId = jwtUtil.extractUserIdClaim(token);
+
+
+                    request = exchange.getRequest()
+                            .mutate()
+                            .header("X-User-ID", userId)
+                            .build();
+                } catch (Exception e) {
+                    log.error("Invalid Token: " + e.getMessage());
+                    throw new UnauthorizedException("Unauthorized access");
                 }
+
+                return chain.filter(exchange.mutate().request(request).build());
             }
+
+            // If route is NOT secured, just pass the original request
             return chain.filter(exchange);
         });
     }
 
     public static class Config {
-        
     }
 }

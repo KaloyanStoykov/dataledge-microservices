@@ -1,5 +1,6 @@
 package org.dataledge.gateway.util;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -11,6 +12,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 @Component
 public class JwtUtil {
@@ -27,19 +29,27 @@ public class JwtUtil {
                 .parseSignedClaims(token);
     }
 
-
-    public String generateToken(String userName) {
-        Map<String, Object> claims = new HashMap<>();
-        // Set up the token with subject, issue date, expiration, and signing key
-        return Jwts.builder()
-                .claims(claims)
-                .subject(userName)
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
-                .signWith(getSignKey())
-                .compact();
+    public String extractUserIdClaim(String token) {
+        // Safely extract the custom claim and cast it as String
+        return extractClaim(token, claims -> claims.get("userId", String.class));
     }
 
+    public String extractUsernameEmail(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = extractAllClaims(token);
+        return claimsResolver.apply(claims);
+    }
+
+    private Claims extractAllClaims(String token) {
+        return Jwts.parser()
+                .verifyWith((SecretKey) getSignKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
 
     // --- Key Derivation ---
 

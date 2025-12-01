@@ -22,6 +22,4 @@ public class UserCredential {
     private String email;
     @Column(nullable = false)
     private String password;
-
-
 }
