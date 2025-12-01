@@ -11,6 +11,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
 
     @Autowired
@@ -58,7 +59,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                             .header("X-User-ID", userId)
                             .build();
                 } catch (Exception e) {
-                    System.out.println("Invalid Token: " + e.getMessage());
+                    log.error("Invalid Token: " + e.getMessage());
                     throw new UnauthorizedException("Unauthorized access");
                 }
 

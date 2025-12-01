@@ -65,7 +65,7 @@ public class AuthService {
 
                     response.setUser(new User(userCredential.getId(), userCredential.getEmail(), userCredential.getName()));
 
-                    String email = String.valueOf(userCredential.getEmail());
+                    String email = userCredential.getEmail();
                     String userId = String.valueOf(userCredential.getId());
 
                     log.info("Setting response jwt token...");
@@ -119,7 +119,7 @@ public class AuthService {
 
         if (authentication != null && authentication.isAuthenticated() && !(authentication instanceof AnonymousAuthenticationToken)) {
 
-            // 1. Get the id from the session/token
+            // 1. Get the email from the session/token
             String email = authentication.getName();
 
             // 2. Fetch the full user details from the DB

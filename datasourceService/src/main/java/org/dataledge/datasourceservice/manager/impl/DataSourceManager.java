@@ -41,16 +41,22 @@ public class DataSourceManager implements IDataSourceManager {
     @Override
     public GetDataSourcesResponse getDataSources(String userId, int pageNumber, int pageSize) {
 
+
+        int parsedUserId;
+        try {
+            parsedUserId = Integer.parseInt(userId);
+        } catch (NumberFormatException e) {
+            throw new NotFoundException("Invalid user ID: " + userId);
+        }
+
         Page<DataSource> pageResult = dataSourceRepo.findAllByUserId(
-                Integer.parseInt(userId),
+                parsedUserId,
                 PageRequest.of(pageNumber, pageSize)
         );
 
-
-
         if (pageResult.isEmpty()) {
             // Change the exception message slightly to reflect the filter context
-            throw new NotFoundException("No data sources found ");
+            throw new NotFoundException("No data sources found for this user");
         }
 
         List<DataSourceResponse> items = pageResult.getContent()

@@ -5,10 +5,7 @@ import org.dataledge.datasourceservice.data.DataType;
 import org.dataledge.datasourceservice.data.DataTypeRepo;
 import org.dataledge.datasourceservice.data.datasources.DataSource;
 import org.dataledge.datasourceservice.data.datasources.DataSourceRepo;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceRequest;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceResponse;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.DataSourceResponse;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.GetDataSourcesResponse;
+import org.dataledge.datasourceservice.dto.datasourcesDTO.*;
 import org.dataledge.datasourceservice.manager.IDataSourceMapper;
 import org.dataledge.datasourceservice.manager.impl.DataSourceManager;
 import org.dataledge.datasourceservice.manager.impl.DataSourceMapper;
@@ -86,7 +83,7 @@ public class DataSourceManagerTest {
         Page<DataSource> page = new PageImpl<>(entities, PageRequest.of(pageNumber, pageSize), totalElements);
 
         // Mock repository call
-        when(dataSourceRepo.findAll(PageRequest.of(pageNumber, pageSize)))
+        when(dataSourceRepo.findAllByUserId(1, PageRequest.of(pageNumber, pageSize)))
                 .thenReturn(page);
 
         // Mock mapping
@@ -98,7 +95,7 @@ public class DataSourceManagerTest {
 
         // Assert
         assertThat(response.getItems()).hasSize(2);
-        for(var  entity : response.getItems()) {
+        for(var entity : response.getItems()) {
             assertThat(entity.getType()).isEqualTo(dataType);
         }
         assertThat(response.getTotalCount()).isEqualTo(totalElements);
@@ -106,7 +103,7 @@ public class DataSourceManagerTest {
         assertThat(response.getPageSize()).isEqualTo(pageSize);
 
         // Verify
-        verify(dataSourceRepo).findAll(PageRequest.of(pageNumber, pageSize));
+        verify(dataSourceRepo).findAllByUserId(1, PageRequest.of(pageNumber, pageSize));
         verify(mapper).toDataSourceResponse(entity1);
         verify(mapper).toDataSourceResponse(entity2);
     }
@@ -119,7 +116,7 @@ public class DataSourceManagerTest {
 
         Page<DataSource> page = new PageImpl<>(List.of(), PageRequest.of(pageNumber, pageSize), totalElements);
 
-        when(dataSourceRepo.findAll(PageRequest.of(pageNumber, pageSize))).thenReturn(page);
+        when(dataSourceRepo.findAllByUserId(1, PageRequest.of(pageNumber, pageSize))).thenReturn(page);
 
         assertThrows(NotFoundException.class, () -> dataSourceManager.getDataSources("1", pageNumber, pageSize));
 
@@ -167,6 +164,41 @@ public class DataSourceManagerTest {
         assertThat(passedEntity.getDescription()).isEqualTo("Test Description");
         assertThat(passedEntity.getUrl()).isEqualTo("jdbc:postgresql://localhost:5432/test");
         assertThat(passedEntity.getCreated()).isNotNull(); // assuming that's what Instant.now() is mapped to
+    }
+
+    @Test
+    void deleteDataSource_success() {
+        int dataSourceId = 1;
+        DataSource mockEntity = DataSource.builder()
+                .id((long) dataSourceId)
+                .name("To Be Deleted")
+                .build();
+
+        when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));
+
+        DeleteDataSourceResponse response = dataSourceManager.deleteDataSource(dataSourceId);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getMessage()).isEqualTo("Datasource deleted successfully!");
+
+        verify(dataSourceRepo).findById(dataSourceId);
+        verify(dataSourceRepo).delete(mockEntity);
+    }
+
+    @Test
+    void deleteDataSource_notFound_throwsException() {
+        int nonExistentId = 99;
+
+        when(dataSourceRepo.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
+            dataSourceManager.deleteDataSource(nonExistentId);
+        });
+
+        assertThat(thrown.getMessage()).isEqualTo("Unknown datasource id");
+
+        verify(dataSourceRepo).findById(nonExistentId);
+        verify(dataSourceRepo, never()).delete(any(DataSource.class));
     }
 
 

@@ -23,7 +23,7 @@ public class DatasourceServiceApplication {
         System.setProperty("DATASOURCE_USERNAME", dotenv.get("DATASOURCE_USERNAME"));
 
         // Docker
-        System.setProperty("MYSQL_DB", dotenv.get("MYSQL_PASS"));
+        System.setProperty("MYSQL_DB", dotenv.get("MYSQL_DB"));
         System.setProperty("MYSQL_PASS", dotenv.get("MYSQL_PASS"));
         System.setProperty("MYSQL_ROOT_PASS", dotenv.get("MYSQL_ROOT_PASS"));
         System.setProperty("MYSQL_USER", dotenv.get("MYSQL_USER"));
