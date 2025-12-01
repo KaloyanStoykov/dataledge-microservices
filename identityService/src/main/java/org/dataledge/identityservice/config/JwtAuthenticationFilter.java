@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.dataledge.identityservice.service.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,6 +24,7 @@ import java.util.Arrays;
  * @author kiko
  * Handles jwt authentication requests to the gateway
  */
+@Slf4j
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -63,6 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Token found
         if (token != null) {
             try {
+                log.info("Attempting to authenticate using JWT Token");
                 email = jwtUtil.extractUsername(token);
 
 
@@ -70,7 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // Check for anonymous user token
                 if (email != null && (currentAuth == null || "anonymousUser".equals(currentAuth.getName()))) {
-
+                    log.info("User is authenticated");
                     // Add logged in userDetails
                     UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
 
@@ -84,7 +87,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     }
                 }
             } catch (Exception e) {
-                logger.error("JWT Authentication failed: " + e.getLocalizedMessage());
+                log.error("JWT Authentication failed: {}", e.getLocalizedMessage());
             }
         }
 

@@ -1,5 +1,6 @@
 package org.dataledge.identityservice.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -13,12 +14,9 @@ public class RabbitConfig {
 
     @Bean
     public MessageConverter converter() {
-        // Дефинираме JSON конвертора за Identity Service
         return new Jackson2JsonMessageConverter();
     }
 
-    // Повторното дефиниране на AmqpTemplate е полезно,
-    // за да сме сигурни, че използва нашия конвертор.
     @Bean
     public AmqpTemplate template(ConnectionFactory connectionFactory) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);

@@ -1,5 +1,6 @@
 package org.dataledge.identityservice.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.dataledge.identityservice.config.CustomUserDetails;
 import org.dataledge.identityservice.entity.UserCredential;
 import org.dataledge.identityservice.repository.UserCredentialRepository;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 @Component
+@Slf4j
 public class CustomUserDetailsService implements UserDetailsService {
 
     @Autowired
@@ -26,6 +28,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String query) throws UsernameNotFoundException {
         Optional<UserCredential> credential = userCredentialRepository.findByEmail(query);
+        log.info("UserDetails from database user credential entity");
         return credential.map(CustomUserDetails::new).orElseThrow(() -> new UsernameNotFoundException("User not found with name: " + query));
     }
 

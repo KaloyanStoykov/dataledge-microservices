@@ -1,10 +1,12 @@
 package org.dataledge.identityservice.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.dataledge.identityservice.dto.UserDeletedEvent;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class RabbitMQProducer {
 
@@ -23,6 +25,6 @@ public class RabbitMQProducer {
 
         rabbitTemplate.convertAndSend(EXCHANGE_NAME, ROUTING_KEY, event);
 
-        System.out.println("User Deleted Event published for User ID: " + userId);
+        log.info("User Deleted Event published for User ID: {}", userId);
     }
 }

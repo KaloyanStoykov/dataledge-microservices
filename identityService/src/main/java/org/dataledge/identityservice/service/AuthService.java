@@ -3,6 +3,7 @@ package org.dataledge.identityservice.service;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.dataledge.identityservice.config.CustomUserDetails;
 import org.dataledge.identityservice.config.exceptions.ExistingEmailException;
 import org.dataledge.identityservice.dto.auth.AuthRequest;
@@ -23,6 +24,7 @@ import java.util.Optional;
 
 @AllArgsConstructor
 @Service
+@Slf4j
 public class AuthService {
 
     private UserCredentialRepository repository;
@@ -37,10 +39,12 @@ public class AuthService {
     public SignUpResponse saveUser(UserCredential userCredential) {
         Optional<UserCredential> existingCredential = repository.findByEmail(userCredential.getEmail());
         if (existingCredential.isPresent()) {
+            log.info("User already exists with email {}", userCredential.getEmail());
             throw new ExistingEmailException("Email already exists!");
         }
         userCredential.setPassword(passwordEncoder.encode(userCredential.getPassword()));
         repository.save(userCredential);
+        log.info("User saved with email {}", userCredential.getEmail());
         return new SignUpResponse("Your account has been created!");
     }
 
@@ -64,6 +68,7 @@ public class AuthService {
                     String email = String.valueOf(userCredential.getEmail());
                     String userId = String.valueOf(userCredential.getId());
 
+                    log.info("Setting response jwt token...");
                     response.setJwtToken(jwtService.generateToken(email, userId));
 
                     return response;
@@ -82,6 +87,7 @@ public class AuthService {
     @Transactional
     public void deletePersonalAccount(Integer requestUID, Integer userId) {
         if(!Objects.equals(requestUID, userId)) {
+            log.error("Invalid delete request");
             throw new BadCredentialsException("Invalid request UID");
         }
 
@@ -89,12 +95,16 @@ public class AuthService {
                 .orElse(null);
 
         if (user == null) {
+            log.error("Invalid user found with requested id: {}", userId );
             throw new NotFoundException("User with ID " + userId + " not found.");
         }
 
         repository.delete(user);
+        log.info("Deleted user with ID {}", userId);
 
+        log.info("Sending message to RabbitMQ for user {}", userId);
         rabbitMQProducer.sendUserDeletedEvent(userId);
+        log.info("Message sent to RabbitMQ for user {}", userId);
     }
 
 
