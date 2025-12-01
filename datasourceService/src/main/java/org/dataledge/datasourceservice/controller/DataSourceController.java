@@ -1,6 +1,5 @@
 package org.dataledge.datasourceservice.controller;
 
-import io.micrometer.core.ipc.http.HttpSender;
 import lombok.AllArgsConstructor;
 import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceRequest;
 import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceResponse;
@@ -30,10 +29,6 @@ public class DataSourceController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/tup")
-    public String getHeader(@RequestHeader("X-User-ID") String userId) {
-        return userId;
-    }
 
     @PostMapping()
     public ResponseEntity<CreateDataSourceResponse> createDataSource(

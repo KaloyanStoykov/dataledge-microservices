@@ -1,5 +1,8 @@
 package org.dataledge.identityservice.service;
 
+import jakarta.transaction.Transactional;
+import jakarta.ws.rs.NotFoundException;
+import lombok.AllArgsConstructor;
 import org.dataledge.identityservice.config.CustomUserDetails;
 import org.dataledge.identityservice.config.exceptions.ExistingEmailException;
 import org.dataledge.identityservice.dto.auth.AuthRequest;
@@ -8,31 +11,28 @@ import org.dataledge.identityservice.dto.auth.SignUpResponse;
 import org.dataledge.identityservice.dto.auth.User;
 import org.dataledge.identityservice.entity.UserCredential;
 import org.dataledge.identityservice.repository.UserCredentialRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
 
+@AllArgsConstructor
 @Service
 public class AuthService {
 
-    @Autowired
     private UserCredentialRepository repository;
 
-    @Autowired
     private PasswordEncoder passwordEncoder;
-
-    @Autowired
     private AuthenticationManager authenticationManager;
 
-    @Autowired
     private JwtUtil jwtService;
+
+    private final RabbitMQProducer rabbitMQProducer;
 
     public SignUpResponse saveUser(UserCredential userCredential) {
         Optional<UserCredential> existingCredential = repository.findByEmail(userCredential.getEmail());
@@ -79,7 +79,23 @@ public class AuthService {
         return response;
     }
 
+    @Transactional
+    public void deletePersonalAccount(Integer requestUID, Integer userId) {
+        if(!Objects.equals(requestUID, userId)) {
+            throw new BadCredentialsException("Invalid request UID");
+        }
 
+        UserCredential user = repository.findById(userId)
+                .orElse(null);
+
+        if (user == null) {
+            throw new NotFoundException("User with ID " + userId + " not found.");
+        }
+
+        repository.delete(user);
+
+        rabbitMQProducer.sendUserDeletedEvent(userId);
+    }
 
 
 
@@ -100,8 +116,8 @@ public class AuthService {
             UserCredential user = repository.findByEmail(email).orElseThrow(() -> new BadCredentialsException("User not found!"));
 
 
-            // 3. Return the DTO with ID, Name, and Email
-            return new User(user.getId(), user.getName(), user.getEmail());
+            // 3. Return the DTO with ID, Email and Name
+            return new User(user.getId(), user.getEmail(), user.getName());
         }
 
         throw new AuthenticationCredentialsNotFoundException("User is currently not authenticated");

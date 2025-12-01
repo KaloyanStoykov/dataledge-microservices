@@ -26,7 +26,7 @@ public class JwtUtil {
     @Value("${JWT_EXPIRATION_MS}")
     private long jwtExpiration;
 
-    // --- NEW METHOD: Extract the custom User ID claim ---
+    // Extract the custom User ID claim ---
     /**
      * Extracts the User ID stored in the custom 'userId' claim.
      * @param token The JWT string.
@@ -68,14 +68,12 @@ public class JwtUtil {
         return extractExpiration(token).before(new Date());
     }
 
-    // --- OVERLOADED METHOD 1: Validate with UserDetails ---
     // Validation is strictly against the standard subject (email)
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
-    // --- OVERLOADED METHOD 2: Validate String only ---
     public void validateToken(final String token) {
         Jwts.parser()
                 .verifyWith(getSignKey())
@@ -83,7 +81,6 @@ public class JwtUtil {
                 .parseSignedClaims(token);
     }
 
-    // --- OVERLOADED METHOD 3 (NEW PRIMARY): Generate from Email AND ID ---
     /**
      * Generates a token setting the Email as the standard subject and the ID as a custom claim.
      * @param email The user's email (used as subject).
@@ -92,20 +89,11 @@ public class JwtUtil {
      */
     public String generateToken(String email, String userId) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId); // Add ID as a custom claim
-        return createToken(claims, email); // Email is set as the standard subject
-    }
-
-    public String generateToken(String email) {
-        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId);
         return createToken(claims, email);
     }
 
-    // --- OVERLOADED METHOD 5: Generate from UserDetails (Deprecated - lacks ID claim) ---
-    public String generateToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, userDetails.getUsername());
-    }
+
 
     // Internal Token Creation
     private String createToken(Map<String, Object> claims, String subject) {

@@ -19,17 +19,31 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Arrays;
 
+/***
+ * @author kiko
+ * Handles jwt authentication requests to the gateway
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    // Utilities to extract claims and username from token
     @Autowired
     private JwtUtil jwtUtil;
 
     @Autowired
     private UserDetailsService userDetailsService;
 
+    // Cookie header name
     private static final String COOKIE_NAME = "accessToken";
 
+    /***
+     *
+     * @param request incoming request from API call
+     * @param response to be modified with JWT token and claims
+     * @param chain filter chain that processes the request
+     * @throws ServletException
+     * @throws IOException
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -37,7 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = null;
         String email;
 
-        // 2. If Header is missing, try to get token from Cookies
+        // Try to get token from header
         if (request.getCookies() != null) {
             token = Arrays.stream(request.getCookies())
                     .filter(c -> COOKIE_NAME.equals(c.getName()))
@@ -46,16 +60,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .findFirst()
                     .orElse(null);
         }
-
+        // Token found
         if (token != null) {
             try {
                 email = jwtUtil.extractUsername(token);
-                logger.info("Email is " + email);
+
 
                 var currentAuth = SecurityContextHolder.getContext().getAuthentication();
 
+                // Check for anonymous user token
                 if (email != null && (currentAuth == null || "anonymousUser".equals(currentAuth.getName()))) {
 
+                    // Add logged in userDetails
                     UserDetails userDetails = this.userDetailsService.loadUserByUsername(email);
 
                     if (jwtUtil.validateToken(token, userDetails)) {

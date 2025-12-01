@@ -20,6 +20,11 @@ public class IdentityServiceApplication {
         System.setProperty("JWT_SECRET", dotenv.get("JWT_SECRET"));
         System.setProperty("JWT_EXPIRATION_MS", dotenv.get("JWT_EXPIRATION_MS"));
 
+        System.setProperty("RABBITMQ_USER", dotenv.get("RABBITMQ_USER"));
+        System.setProperty("RABBITMQ_PASS", dotenv.get("RABBITMQ_PASS"));
+        System.setProperty("RABBITMQ_HOST", dotenv.get("RABBITMQ_HOST"));
+        System.setProperty("RABBITMQ_PORT", dotenv.get("RABBITMQ_PORT"));
+
         // --- End of .env Loading ---
 
         SpringApplication.run(IdentityServiceApplication.class, args);

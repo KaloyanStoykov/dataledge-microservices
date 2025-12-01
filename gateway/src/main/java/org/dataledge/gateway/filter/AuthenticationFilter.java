@@ -41,14 +41,6 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                     }
                 }
 
-                // 3. STRATEGY B: If no cookie, try Authorization Header (Priority for Postman/APIs)
-                if (token == null && request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                    String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-                    if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                        token = authHeader.substring(7);
-                    }
-                }
-
                 // 4. If we still don't have a token, throw error
                 if (token == null) {
                     throw new UnauthorizedException("Missing authorization cookie or header");
