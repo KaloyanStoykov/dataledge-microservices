@@ -176,7 +176,7 @@ public class DataSourceManagerTest {
 
         when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));
 
-        DeleteDataSourceResponse response = dataSourceManager.deleteDataSource(dataSourceId);
+        DeleteDataSourceResponse response = dataSourceManager.deleteDataSource("1", dataSourceId);
 
         assertThat(response).isNotNull();
         assertThat(response.getMessage()).isEqualTo("Datasource deleted successfully!");
@@ -192,7 +192,7 @@ public class DataSourceManagerTest {
         when(dataSourceRepo.findById(nonExistentId)).thenReturn(Optional.empty());
 
         NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
-            dataSourceManager.deleteDataSource(nonExistentId);
+            dataSourceManager.deleteDataSource("1", nonExistentId);
         });
 
         assertThat(thrown.getMessage()).isEqualTo("Unknown datasource id");

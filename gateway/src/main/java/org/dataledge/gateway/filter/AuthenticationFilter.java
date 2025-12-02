@@ -1,5 +1,6 @@
 package org.dataledge.gateway.filter;
 
+import lombok.extern.slf4j.Slf4j;
 import org.dataledge.gateway.config.exceptions.UnauthorizedException;
 import org.dataledge.gateway.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +60,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                             .header("X-User-ID", userId)
                             .build();
                 } catch (Exception e) {
-                    log.error("Invalid Token: " + e.getMessage());
+                    //log.error("Invalid Token: " + e.getMessage());
                     throw new UnauthorizedException("Unauthorized access");
                 }
 

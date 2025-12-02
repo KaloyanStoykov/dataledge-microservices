@@ -41,8 +41,9 @@ public class DataSourceController {
 
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<DeleteDataSourceResponse> deleteDataSource(@PathVariable("id") int id){
-        DeleteDataSourceResponse response = dataSourceManager.deleteDataSource(id);
+    public ResponseEntity<DeleteDataSourceResponse> deleteDataSource(@PathVariable("id") int id,
+                                                                     @RequestHeader("X-User-ID") String userId){
+        DeleteDataSourceResponse response = dataSourceManager.deleteDataSource(userId, id);
         return ResponseEntity.ok(response);
     }
 
