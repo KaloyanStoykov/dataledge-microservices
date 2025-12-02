@@ -8,5 +8,6 @@ import org.dataledge.datasourceservice.dto.datasourcesDTO.GetDataSourcesResponse
 public interface IDataSourceManager {
     GetDataSourcesResponse getDataSources(String userId, int pageNumber, int pageSize);
     CreateDataSourceResponse createDataSource(String userId, CreateDataSourceRequest dataSourceRequest);
-    DeleteDataSourceResponse deleteDataSource(int id);
+    DeleteDataSourceResponse deleteDataSource(String userId, int id);
+
 }
