@@ -1,10 +1,8 @@
 package org.dataledge.identityservice.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.dataledge.identityservice.dto.UserDeletedResponse;
 import org.dataledge.identityservice.dto.auth.AuthRequest;
-import org.dataledge.identityservice.dto.auth.AuthResponse;
 import org.dataledge.identityservice.dto.auth.SignUpResponse;
 import org.dataledge.identityservice.dto.auth.User;
 import org.dataledge.identityservice.entity.UserCredential;
@@ -12,12 +10,10 @@ import org.dataledge.identityservice.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.dataledge.common.AppHeaders;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -72,7 +68,7 @@ public class AuthController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<UserDeletedResponse> deleteUser(@PathVariable int id,
                                                           HttpServletResponse response,
-                                                          @RequestHeader("X-User-ID")  String userId) {
+                                                          @RequestHeader(AppHeaders.CORRELATION_ID)  String userId) {
 
         ResponseCookie cookie = ResponseCookie.from("accessToken", "") // Празно
                 .httpOnly(true)

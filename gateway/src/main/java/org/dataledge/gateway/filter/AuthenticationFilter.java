@@ -8,6 +8,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpHeaders;
+import org.dataledge.common.AppHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
@@ -57,7 +58,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
                     request = exchange.getRequest()
                             .mutate()
-                            .header("X-User-ID", userId)
+                            .header(AppHeaders.CORRELATION_ID, userId)
                             .build();
                 } catch (Exception e) {
                     //log.error("Invalid Token: " + e.getMessage());
