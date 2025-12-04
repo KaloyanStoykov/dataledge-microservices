@@ -1,13 +1,13 @@
 package org.dataledge.gateway.filter;
 
 import lombok.extern.slf4j.Slf4j;
+import org.dataledge.common.DataLedgeUtil;
 import org.dataledge.gateway.config.exceptions.UnauthorizedException;
 import org.dataledge.gateway.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpCookie;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
@@ -57,7 +57,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
                     request = exchange.getRequest()
                             .mutate()
-                            .header("X-User-ID", userId)
+                            .header(DataLedgeUtil.USER_ID_HEADER, userId)
                             .build();
                 } catch (Exception e) {
                     //log.error("Invalid Token: " + e.getMessage());

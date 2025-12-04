@@ -1,6 +1,7 @@
 package org.dataledge.datasourceservice.controller;
 
 import lombok.AllArgsConstructor;
+import org.dataledge.common.DataLedgeUtil;
 import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceRequest;
 import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceResponse;
 import org.dataledge.datasourceservice.dto.datasourcesDTO.DeleteDataSourceResponse;
@@ -22,18 +23,17 @@ public class DataSourceController {
     public ResponseEntity<GetDataSourcesResponse> getDataSource(
             @RequestParam int pageNumber,
             @RequestParam int pageSize,
-            @RequestHeader("X-User-ID") String userId
+            @RequestHeader(DataLedgeUtil.USER_ID_HEADER) String userId
     ) {
         GetDataSourcesResponse response = dataSourceManager.getDataSources(userId, pageNumber, pageSize);
 
         return ResponseEntity.ok(response);
     }
 
-
     @PostMapping()
     public ResponseEntity<CreateDataSourceResponse> createDataSource(
             @RequestBody CreateDataSourceRequest createDataSourceRequest,
-            @RequestHeader("X-User-ID") String userId
+            @RequestHeader(DataLedgeUtil.USER_ID_HEADER) String userId
     ) {
         CreateDataSourceResponse response = dataSourceManager.createDataSource(userId, createDataSourceRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -42,7 +42,7 @@ public class DataSourceController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<DeleteDataSourceResponse> deleteDataSource(@PathVariable("id") int id,
-                                                                     @RequestHeader("X-User-ID") String userId){
+                                                                     @RequestHeader(DataLedgeUtil.USER_ID_HEADER) String userId){
         DeleteDataSourceResponse response = dataSourceManager.deleteDataSource(userId, id);
         return ResponseEntity.ok(response);
     }

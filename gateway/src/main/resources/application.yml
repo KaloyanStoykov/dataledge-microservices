@@ -39,6 +39,12 @@ spring:
                         - Path=/auth/**
                       filters:
                         - AuthenticationFilter
+                    - id: datasource-service-blob
+                      uri: lb://DATASOURCE-SERVICE
+                      predicates:
+                        - Path=/blob/**
+                      filters:
+                        - AuthenticationFilter
 resilience4j:
   circuitbreaker:
     instances:

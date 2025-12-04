@@ -21,6 +21,7 @@ public class DatasourceServiceApplication {
         // Database Config
         System.setProperty("DATASOURCE_URL", dotenv.get("DATASOURCE_URL"));
         System.setProperty("DATASOURCE_USERNAME", dotenv.get("DATASOURCE_USERNAME"));
+        System.setProperty("DATASOURCE_PASSWORD", dotenv.get("DATASOURCE_PASSWORD"));
 
         // Docker
         System.setProperty("MYSQL_DB", dotenv.get("MYSQL_DB"));
@@ -32,6 +33,11 @@ public class DatasourceServiceApplication {
         System.setProperty("RABBITMQ_PASS", dotenv.get("RABBITMQ_PASS"));
         System.setProperty("RABBITMQ_HOST", dotenv.get("RABBITMQ_HOST"));
         System.setProperty("RABBITMQ_PORT", dotenv.get("RABBITMQ_PORT"));
+
+        System.setProperty("AZURE_STORAGE_ACCOUNT_NAME", dotenv.get("AZURE_STORAGE_ACCOUNT_NAME"));
+        System.setProperty("AZURE_STORAGE_ACCOUNT_ENDPOINT", dotenv.get("AZURE_STORAGE_ACCOUNT_ENDPOINT"));
+        System.setProperty("AZURE_FILE_CONTAINER_NAME", dotenv.get("AZURE_FILE_CONTAINER_NAME"));
+        System.setProperty("AZURE_CONNECTION_STRING", dotenv.get("AZURE_CONNECTION_STRING"));
 
 
 
