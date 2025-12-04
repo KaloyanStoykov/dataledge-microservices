@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import org.dataledge.common.AppHeaders;
+import org.dataledge.common.DataLedgeUtil;
 import java.nio.charset.Charset;
 
 @RestController
@@ -38,7 +38,7 @@ public class BlobController {
     }
 
     @GetMapping("/readBlobFile")
-    public String readBlobFile(@RequestHeader(AppHeaders.CORRELATION_ID) String userId) throws IOException {
+    public String readBlobFile(@RequestHeader(DataLedgeUtil.USER_ID_HEADER) String userId) throws IOException {
         // Dynamically resolve the resource path
         Resource blobFile = resourceLoader.getResource(getAzurePath(userId, "test.txt"));
 
@@ -48,7 +48,7 @@ public class BlobController {
     }
 
     @PostMapping("/writeBlobFile")
-    public String writeBlobFile(@RequestBody String data, @RequestHeader(AppHeaders.CORRELATION_ID) String userId ) throws IOException {
+    public String writeBlobFile(@RequestBody String data, @RequestHeader(DataLedgeUtil.USER_ID_HEADER) String userId ) throws IOException {
         // Dynamically resolve the WritableResource
         Resource resource = resourceLoader.getResource(getAzurePath(userId, "test.txt"));
 

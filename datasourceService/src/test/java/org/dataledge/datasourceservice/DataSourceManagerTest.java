@@ -8,7 +8,6 @@ import org.dataledge.datasourceservice.data.datasources.DataSourceRepo;
 import org.dataledge.datasourceservice.dto.datasourcesDTO.*;
 import org.dataledge.datasourceservice.manager.IDataSourceMapper;
 import org.dataledge.datasourceservice.manager.impl.DataSourceManager;
-import org.dataledge.datasourceservice.manager.impl.DataSourceMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -172,6 +171,7 @@ public class DataSourceManagerTest {
         DataSource mockEntity = DataSource.builder()
                 .id((long) dataSourceId)
                 .name("To Be Deleted")
+                .userId(1)
                 .build();
 
         when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));

@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.dataledge.common.AppHeaders;
+import org.dataledge.common.DataLedgeUtil;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.web.bind.annotation.*;
 
@@ -68,7 +68,7 @@ public class AuthController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<UserDeletedResponse> deleteUser(@PathVariable int id,
                                                           HttpServletResponse response,
-                                                          @RequestHeader(AppHeaders.CORRELATION_ID)  String userId) {
+                                                          @RequestHeader(DataLedgeUtil.USER_ID_HEADER)  String userId) {
 
         ResponseCookie cookie = ResponseCookie.from("accessToken", "") // Празно
                 .httpOnly(true)

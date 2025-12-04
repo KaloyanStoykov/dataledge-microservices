@@ -7,8 +7,8 @@ public final class DataLedgeUtil {
     /**
      * The HTTP header name for correlation ID.
      * Used for each microservice to request the userId from HttpHeader
-     * using @RequestHeader(AppHeaders.CORRELATION_ID)
+     * using @RequestHeader(DataLedgeUtil.CORRELATION_ID)
      */
-    public static final String CORRELATION_ID = "X-DataLedge-Correlation-ID";
+    public static final String USER_ID_HEADER = "X-DataLedge-User-ID";
 
 }
