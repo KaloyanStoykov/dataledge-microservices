@@ -81,7 +81,7 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
                 : file.getOriginalFilename();
 
         if (finalFileName == null || finalFileName.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File name must be provided.");
+            throw new BlobStorageOperationException("File name must be provided.");
         }
 
         // Construct the potential path (e.g., /users/{userId}/{fileName})
@@ -89,7 +89,7 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
 
         // 4. Checking for duplicate paths
         if (azureBlobStorage.exists(potentialBlobPath)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "File already exists at path: " + potentialBlobPath);
+            throw new BlobStorageOperationException("File already exists at path: " + potentialBlobPath);
         }
 
         try (InputStream dataStream = file.getInputStream()) {
@@ -103,7 +103,7 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
 
         } catch (IOException e) {
             // Handle I/O issues during file processing
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error processing file upload", e);
+            throw new BlobStorageOperationException("Error processing file upload", e);
         }
     }
 
