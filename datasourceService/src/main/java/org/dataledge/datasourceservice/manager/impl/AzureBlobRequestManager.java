@@ -6,11 +6,9 @@ import org.dataledge.datasourceservice.config.exceptions.InvalidUserException;
 import org.dataledge.datasourceservice.dto.Storage;
 import org.dataledge.datasourceservice.manager.IAzureBlobRequestManager;
 import org.dataledge.datasourceservice.manager.IAzureBlobStorage;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
