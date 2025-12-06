@@ -7,10 +7,7 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                dir('datasourceService'){
-                    // Clean, Compile, and Package the service
-                    sh './mvnw -B -DskipTests clean package'
-                }
+                sh './datasourceService/mvnw -B -DskipTests clean install -pl datasourceService -am'
             }
         }
 
