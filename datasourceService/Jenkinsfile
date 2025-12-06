@@ -9,8 +9,7 @@ pipeline {
             steps {
                 dir('datasourceService'){
                     // Clean, Compile, and Package the service
-                    sh 'cd ..'
-                    sh './mvnw -B -DskipTests clean compile -pl datasourceService'
+                    sh './mvnw -B -DskipTests clean package'
                 }
             }
         }
