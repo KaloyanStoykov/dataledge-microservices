@@ -6,9 +6,12 @@ pipeline {
 
     stages {
         stage('Build') {
-            steps {
-                sh './datasourceService/mvnw -B -DskipTests clean verify -pl datasourceService -am'
-            }
+           steps {
+               dir('datasourceService'){
+                   // Clean, Compile, and Package the service
+                   sh './mvnw -B -DskipTests clean package'
+               }
+           }
         }
 
         stage('SonarCloud analysis'){
