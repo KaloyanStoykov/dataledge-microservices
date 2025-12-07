@@ -17,12 +17,15 @@ pipeline {
         stage('SonarCloud analysis'){
             steps {
                 withSonarQubeEnv(credentialsId: '7e584476-a3ff-43e1-b2b8-d9ab1436a78f', installationName: 'SonarQube Cloud'){
-                    sh '''
-                        mvn sonar:sonar \
-                          -Dsonar.projectKey=dataledge-microservices \
-                          -Dsonar.organization=dataledge-service \
-                          -Dsonar.host.url=https://sonarcloud.io
-                    '''
+                    dir('datasourceService') {
+                        // The relative path to mvnw is now './mvnw'
+                        sh '''
+                            ./mvnw sonar:sonar \
+                              -Dsonar.projectKey=dataledge-microservices \
+                              -Dsonar.organization=dataledge-service \
+                              -Dsonar.host.url=https://sonarcloud.io
+                        '''
+                    }
                 }
             }
         }
