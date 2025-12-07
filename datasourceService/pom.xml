@@ -28,6 +28,14 @@
         <guava.version>33.5.0-jre</guava.version>
         <xstream.version>1.4.21</xstream.version>
         <httpclient.version>4.5.14</httpclient.version>
+
+        <sonar.coverage.exclusions>
+            **/config/**/*.java,
+            **/controller/*.java,
+            **/dto/**/*.java,
+            **/data/**/*.java,
+            **/DatasourceServiceApplicationTests.java
+        </sonar.coverage.exclusions>
         <commons-configuration.version>2.10.1</commons-configuration.version>
     </properties>
 
