@@ -9,7 +9,7 @@ pipeline {
            steps {
                dir('datasourceService'){
                    // Clean, Compile, and Package the service
-                   sh './mvnw -B -DskipTests clean package'
+                   sh './mvnw -B verify'
                }
            }
         }
@@ -18,7 +18,6 @@ pipeline {
             steps {
                 withSonarQubeEnv(credentialsId: '7e584476-a3ff-43e1-b2b8-d9ab1436a78f', installationName: 'SonarQube Cloud'){
                     dir('datasourceService') {
-                        // The relative path to mvnw is now './mvnw'
                         sh '''
                             ./mvnw sonar:sonar \
                               -Dsonar.projectKey=dataledge-microservices \
