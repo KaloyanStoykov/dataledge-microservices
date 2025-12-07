@@ -90,35 +90,6 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
         }
     }
 
-    @Override
-    public String update(Storage storage) {
-
-        throw new NotImplementedException();
-    }
-
-    /**
-     * Recommended for reading large files, as it streams the content.
-     * The caller is responsible for closing the InputStream.
-     */
-    @Override
-    public InputStream read(Storage storage) {
-        String path = getPath(storage);
-        BlobClient blob = getBlobClient(storage);
-        try {
-            // This is the efficient way to download large files
-            log.info("Starting download stream for blob: {}", path);
-            return blob.openInputStream();
-        } catch (BlobStorageException e) {
-            log.error("Failed to read blob stream: {}", path, e);
-            // Handle HTTP 404 specifically for better API clarity
-            if (e.getStatusCode() == 404) {
-                throw new BlobStorageOperationException("Blob not found: " + path, e);
-            }
-            throw new BlobStorageOperationException("Failed to read blob: " + path, e);
-        }
-    }
-
-
 
     @Override
     public List<String> listFiles(Storage storage) {
@@ -141,48 +112,9 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
         }
     }
 
-    @Override
-    public void delete(Storage storage) {
-        String path = getPath(storage);
-        BlobClient client = getBlobClient(storage);
-        try {
-            client.delete();
-            log.warn("Blob successfully deleted: {}", path);
-        } catch (BlobStorageException e) {
-            log.error("Failed to delete blob: {}", path, e);
-            throw new BlobStorageOperationException("Failed to delete blob: " + path, e);
-        }
-    }
 
-    // --- CONTAINER Operations ---
 
-    @Override
-    public void createContainer() {
-        String containerName = blobContainerClient.getBlobContainerName();
-        try {
-            blobServiceClient.createBlobContainer(containerName);
-            log.info("Blob container created: {}", containerName);
-        } catch (BlobStorageException e) {
-            log.error("Failed to create container: {}", containerName, e);
-            throw new BlobStorageOperationException("Failed to create container: " + containerName, e);
-        }
-    }
 
-    @Override
-    public void deleteContainer() {
-        String containerName = blobContainerClient.getBlobContainerName();
-        try {
-            // Using deleteIfExists for idempotent operation
-            if (blobServiceClient.deleteBlobContainerIfExists(containerName)) {
-                log.warn("Blob container deleted: {}", containerName);
-            } else {
-                log.info("Blob container not found, skipping delete: {}", containerName);
-            }
-        } catch (BlobStorageException e) {
-            log.error("Failed to delete container: {}", containerName, e);
-            throw new BlobStorageOperationException("Failed to delete container: " + containerName, e);
-        }
-    }
 
 
     /**
