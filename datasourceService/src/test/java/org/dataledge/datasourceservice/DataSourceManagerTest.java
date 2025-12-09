@@ -126,7 +126,7 @@ public class DataSourceManagerTest {
     void getDataSources_throwException_invalidUserId() {
         String invalidUserId = "notANumber";
 
-        // Since the parsing fails immediately, we don't need to mock the repository
+        /* Since the parsing fails immediately, we don't need to mock the repository */
         NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
             dataSourceManager.getDataSources(invalidUserId, 0, 10);
         });
@@ -240,9 +240,7 @@ public class DataSourceManagerTest {
         when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));
 
         // Since the parsing fails immediately, we don't need to mock the repository
-        NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
-            dataSourceManager.deleteDataSource(invalidUserId, dataSourceId);
-        });
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> dataSourceManager.deleteDataSource(invalidUserId, dataSourceId));
 
         // Verify the exception message
         assertThat(thrown.getMessage()).contains("Invalid user ID: {}", invalidUserId);
@@ -286,9 +284,7 @@ public class DataSourceManagerTest {
 
         when(dataSourceRepo.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
-            dataSourceManager.deleteDataSource("1", nonExistentId);
-        });
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> dataSourceManager.deleteDataSource("1", nonExistentId));
 
         assertThat(thrown.getMessage()).isEqualTo("Unknown datasource id");
 

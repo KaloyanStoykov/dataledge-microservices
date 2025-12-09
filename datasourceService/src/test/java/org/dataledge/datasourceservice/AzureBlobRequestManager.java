@@ -13,7 +13,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -86,9 +85,7 @@ class ApiStorageServiceTest {
                 .thenThrow(new RuntimeException("Network Error"));
 
         // 2. ACT & ASSERT
-        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> {
-            azureBlobRequestManager.saveAPIContentToBlob(apiUrl, "file.txt", userId);
-        });
+        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, "file.txt", userId));
 
         assertThat(ex.getMessage()).contains("Failed to call external API");
 
@@ -105,9 +102,7 @@ class ApiStorageServiceTest {
         when(restTemplate.getForObject(apiUrl, String.class)).thenReturn(null);
 
         // 2. ACT & ASSERT
-        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> {
-            azureBlobRequestManager.saveAPIContentToBlob(apiUrl, "file.txt", userId);
-        });
+        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, "file.txt", userId));
 
         assertThat(ex.getMessage()).contains("API returned no content");
         verifyNoInteractions(azureBlobStorage);
@@ -126,9 +121,7 @@ class ApiStorageServiceTest {
         when(azureBlobStorage.exists(anyString())).thenReturn(true);
 
         // 2. ACT & ASSERT
-        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> {
-            azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId);
-        });
+        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId));
 
         assertThat(ex.getMessage()).contains("File already exists");
 
@@ -199,9 +192,7 @@ class ApiStorageServiceTest {
         when(mockFile.getOriginalFilename()).thenReturn(null);
 
         // 2. ACT & ASSERT
-        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> {
-            azureBlobRequestManager.writeFileToBlob(mockFile, "", "1");
-        });
+        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> azureBlobRequestManager.writeFileToBlob(mockFile, "", "1"));
 
         assertThat(ex.getMessage()).contains("File name must be provided");
         verifyNoInteractions(azureBlobStorage);
@@ -216,9 +207,7 @@ class ApiStorageServiceTest {
         when(azureBlobStorage.exists(anyString())).thenReturn(true); // Return TRUE
 
         // 2. ACT & ASSERT
-        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> {
-            azureBlobRequestManager.writeFileToBlob(mockFile, fileName, userId);
-        });
+        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> azureBlobRequestManager.writeFileToBlob(mockFile, fileName, userId));
 
         assertThat(ex.getMessage()).contains("File already exists");
 
@@ -238,9 +227,7 @@ class ApiStorageServiceTest {
         when(mockFile.getInputStream()).thenThrow(new IOException("Stream broken"));
 
         // 2. ACT & ASSERT
-        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> {
-            azureBlobRequestManager.writeFileToBlob(mockFile, fileName, userId);
-        });
+        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class, () -> azureBlobRequestManager.writeFileToBlob(mockFile, fileName, userId));
 
         assertThat(ex.getMessage()).contains("Error processing file upload");
     }
@@ -267,18 +254,14 @@ class ApiStorageServiceTest {
 
     @Test
     void sanitizeUserId_ShouldThrowException_WhenIdIsNull() {
-        InvalidUserException ex = assertThrows(InvalidUserException.class, () -> {
-            azureBlobRequestManager.sanitizeUserId(null);
-        });
+        InvalidUserException ex = assertThrows(InvalidUserException.class, () -> azureBlobRequestManager.sanitizeUserId(null));
 
         assertThat(ex.getMessage()).isEqualTo("User ID cannot be empty.");
     }
 
     @Test
     void sanitizeUserId_ShouldThrowException_WhenIdIsEmpty() {
-        InvalidUserException ex = assertThrows(InvalidUserException.class, () -> {
-            azureBlobRequestManager.sanitizeUserId("");
-        });
+        InvalidUserException ex = assertThrows(InvalidUserException.class, () -> azureBlobRequestManager.sanitizeUserId(""));
 
         assertThat(ex.getMessage()).isEqualTo("User ID cannot be empty.");
     }
@@ -287,9 +270,7 @@ class ApiStorageServiceTest {
     @ParameterizedTest
     @ValueSource(strings = {"abc", "12a34", "12-34", "12.34", "user_1"})
     void sanitizeUserId_ShouldThrowException_ForNonNumericFormats(String invalidInput) {
-        InvalidUserException ex = assertThrows(InvalidUserException.class, () -> {
-            azureBlobRequestManager.sanitizeUserId(invalidInput);
-        });
+        InvalidUserException ex = assertThrows(InvalidUserException.class, () -> azureBlobRequestManager.sanitizeUserId(invalidInput));
 
         assertThat(ex.getMessage()).contains("Invalid User ID format");
     }

@@ -7,7 +7,6 @@ import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.dataledge.datasourceservice.config.exceptions.BlobStorageOperationException;
 import org.dataledge.datasourceservice.dto.Storage;
@@ -36,13 +35,6 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
         this.blobContainerClient = blobContainerClient;
     }
 
-    /**
-     * Helper method to get the BlobClient and handle path generation/errors.
-     */
-    private BlobClient getBlobClient(Storage storage) {
-        String path = getPath(storage);
-        return blobContainerClient.getBlobClient(path);
-    }
 
 
     @Override

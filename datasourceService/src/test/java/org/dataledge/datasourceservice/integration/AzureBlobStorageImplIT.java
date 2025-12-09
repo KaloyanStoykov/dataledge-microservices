@@ -36,8 +36,6 @@ class AzureBlobStorageImplIT {
 
     private AzureBlobStorageImpl azureBlobStorageImpl;
 
-    private String containerName;
-
     @BeforeEach
     void setUp() {
         Integer blobPort = AZURITE_CONTAINER.getMappedPort(10000);
@@ -50,7 +48,7 @@ class AzureBlobStorageImplIT {
                 .connectionString(connectionString)
                 .buildClient();
 
-        containerName = RandomString.make().toLowerCase();
+        String containerName = RandomString.make().toLowerCase();
         realContainerClient = blobServiceClient.createBlobContainer(containerName);
 
 
@@ -201,9 +199,7 @@ class AzureBlobStorageImplIT {
 
             // 2. ACT & ASSERT
             // Azure SDK throws BlobStorageException (404) -> Your code wraps it in BlobStorageOperationException
-            assertThrows(BlobStorageOperationException.class, () -> {
-                azureBlobStorageImpl.listFiles(storage);
-            });
+            assertThrows(BlobStorageOperationException.class, () -> azureBlobStorageImpl.listFiles(storage));
 
         } finally {
             // 3. CLEANUP (CRITICAL)

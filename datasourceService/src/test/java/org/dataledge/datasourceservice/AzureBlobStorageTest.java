@@ -48,9 +48,7 @@ public class AzureBlobStorageTest {
                 100L
         );
 
-        IOException thrownException = assertThrows(IOException.class, () -> {
-            serviceUnderTest.write(storage);
-        });
+        IOException thrownException = assertThrows(IOException.class, () -> serviceUnderTest.write(storage));
 
         String expectedPath = userId + "/" + fileName;
         assertThat(thrownException.getMessage()).contains("Failed to write blob to Azure");
