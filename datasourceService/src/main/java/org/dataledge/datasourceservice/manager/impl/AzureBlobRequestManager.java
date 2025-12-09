@@ -36,31 +36,33 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
         // 1. Fetch data from the external API
         String apiResponse;
         try {
-            // For a String response (like JSON or text)
+            // Only guard the risky network call
             apiResponse = restTemplate.getForObject(apiUrl, String.class);
-            if (apiResponse == null) {
-                throw new BlobStorageOperationException("API returned no content.");
-            }
         } catch (Exception e) {
-            throw new BlobStorageOperationException("Failed to call external API: " + apiUrl);
+            // This catches network/timeout errors
+            throw new BlobStorageOperationException("Failed to call external API: " + apiUrl, e);
         }
 
-        // 2. Convert the API String response into an InputStream
+        // 2. Validate (Outside the try/catch)
+        if (apiResponse == null) {
+            // This will now propagate correctly to the test
+            throw new BlobStorageOperationException("API returned no content.");
+        }
+
+        // 3. Convert and Save
         byte[] contentBytes = apiResponse.getBytes(Charset.defaultCharset());
-
         long contentSize = contentBytes.length;
-        try (InputStream dataStream = new ByteArrayInputStream(contentBytes)) {
 
+        try (InputStream dataStream = new ByteArrayInputStream(contentBytes)) {
             String potentialBlobPath = sanitizedUserId + "/" + blobFileName;
+
             if (azureBlobStorage.exists(potentialBlobPath)) {
                 throw new BlobStorageOperationException("File already exists at path: " + potentialBlobPath);
             }
 
-            // 4. Create Storage DTO and write to Azure Blob Storage
             Storage writeStorage = new Storage(dataStream, sanitizedUserId, blobFileName, contentSize);
             String blobPath = azureBlobStorage.write(writeStorage);
 
-            log.info("Successfully saved API response reto blob for user {} at path {}: ", sanitizedUserId, blobPath);
             return "API content successfully saved!";
 
         } catch (IOException e) {
@@ -107,7 +109,7 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
 
     @Override
     public String sanitizeUserId(String userId) {
-        if (userId == null || userId.isEmpty()) {
+        if (userId == null || userId.trim().isEmpty()) {
             log.error("Invalid user id provided.");
             throw new InvalidUserException("User ID cannot be empty.");
         }

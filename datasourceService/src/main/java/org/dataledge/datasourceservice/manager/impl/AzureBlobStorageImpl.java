@@ -78,8 +78,6 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
         }
 
         try {
-            // 1. Get a client reference for the specific blob path.
-            // Note: Getting the client doesn't actually check existence yet.
             BlobClient blobClient = blobContainerClient.getBlobClient(relativePath);
 
             return blobClient.exists();
@@ -111,10 +109,6 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
             throw new BlobStorageOperationException("Failed to list files in path: " + pathPrefix, e);
         }
     }
-
-
-
-
 
 
     /**

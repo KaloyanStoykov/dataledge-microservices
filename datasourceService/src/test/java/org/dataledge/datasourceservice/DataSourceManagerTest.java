@@ -1,5 +1,6 @@
 package org.dataledge.datasourceservice;
 
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import org.dataledge.datasourceservice.data.DataType;
 import org.dataledge.datasourceservice.data.DataTypeRepo;
@@ -122,6 +123,25 @@ public class DataSourceManagerTest {
     }
 
     @Test
+    void getDataSources_throwException_invalidUserId() {
+        String invalidUserId = "notANumber";
+
+        // Since the parsing fails immediately, we don't need to mock the repository
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
+            dataSourceManager.getDataSources(invalidUserId, 0, 10);
+        });
+
+        // Verify the exception message
+        assertThat(thrown.getMessage()).contains("Invalid user ID: " + invalidUserId);
+
+        // FIX: Verify that the repository was never called with ANY arguments
+        verify(dataSourceRepo, never()).findAllByUserId(
+                any(Integer.class), // Use an Argument Matcher for the userId (since it should never be called)
+                any(PageRequest.class) // Use an Argument Matcher for the PageRequest
+        );
+    }
+
+    @Test
     void createDataSource_success_returnsData() {
         // Arrange
         CreateDataSourceRequest request = new CreateDataSourceRequest();
@@ -166,6 +186,27 @@ public class DataSourceManagerTest {
     }
 
     @Test
+    void createDataSource_unknownType_throwsNotFoundException() {
+        String userId = "1";
+        long nonExistentTypeId = 99L;
+
+        CreateDataSourceRequest request = new CreateDataSourceRequest();
+        request.setTypeId(nonExistentTypeId);
+        request.setName("Test Name");
+
+        when(dataTypeRepo.findById(nonExistentTypeId)).thenReturn(Optional.empty());
+
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
+            dataSourceManager.createDataSource(userId, request);
+        });
+
+        assertThat(thrown.getMessage()).isEqualTo("Unknown datasource type");
+
+        verify(dataTypeRepo).findById(nonExistentTypeId);
+        verify(dataSourceRepo, never()).save(any(DataSource.class));
+    }
+
+    @Test
     void deleteDataSource_success() {
         int dataSourceId = 1;
         DataSource mockEntity = DataSource.builder()
@@ -183,6 +224,60 @@ public class DataSourceManagerTest {
 
         verify(dataSourceRepo).findById(dataSourceId);
         verify(dataSourceRepo).delete(mockEntity);
+    }
+
+    @Test
+    void deleteDataSource_invalidUserIdFormat_throwsNotFoundException() {
+        int dataSourceId = 1;
+        String invalidUserId = "notANumber";
+
+        DataSource mockEntity = DataSource.builder()
+                .id((long) dataSourceId)
+                .name("To Be Deleted")
+                .userId(1)
+                .build();
+
+        when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));
+
+        // Since the parsing fails immediately, we don't need to mock the repository
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
+            dataSourceManager.deleteDataSource(invalidUserId, dataSourceId);
+        });
+
+        // Verify the exception message
+        assertThat(thrown.getMessage()).contains("Invalid user ID: {}", invalidUserId);
+
+        // Verify that the repository was never called
+        verify(dataSourceRepo, never()).delete(any(DataSource.class));
+    }
+
+    @Test
+    void deleteDataSource_userIdMismatch_throwsForbiddenException() {
+        int dataSourceId = 1;
+        String requestedUserId = "10";
+        long actualDataSourceOwnerId = 5L; // Different from requestedUserId
+
+        DataSource mockEntity = DataSource.builder()
+                .id((long) dataSourceId)
+                .name("To Be Deleted")
+                .userId((int)actualDataSourceOwnerId)
+                .build();
+
+        // Arrange: Mock the findById to return a DataSource owned by a different user
+        when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));
+
+        // Act & Assert: Expect ForbiddenException
+        ForbiddenException thrown = assertThrows(ForbiddenException.class, () -> {
+            // Pass the requesting user ID '10'
+            dataSourceManager.deleteDataSource(requestedUserId, dataSourceId);
+        });
+
+        // Verify the exception message
+        assertThat(thrown.getMessage()).isEqualTo("User can delete only own datasource!");
+
+        // Verify findById was called, but delete was NOT called
+        verify(dataSourceRepo).findById(dataSourceId);
+        verify(dataSourceRepo, never()).delete(any(DataSource.class));
     }
 
     @Test
