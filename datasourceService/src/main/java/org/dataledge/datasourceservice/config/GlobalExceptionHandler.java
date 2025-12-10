@@ -1,6 +1,7 @@
 package org.dataledge.datasourceservice.config;
 
 import jakarta.ws.rs.NotFoundException;
+import org.dataledge.datasourceservice.config.exceptions.BlobStorageOperationException;
 import org.dataledge.datasourceservice.config.exceptions.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -21,6 +22,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = IOException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public @ResponseBody ErrorResponse handleException(IOException ex) {
+        return new ErrorResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
+    }
+
+    @ExceptionHandler(value = BlobStorageOperationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public @ResponseBody ErrorResponse handleException(BlobStorageOperationException ex) {
         return new ErrorResponse(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
     }
 }
