@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 import org.dataledge.common.DataLedgeUtil;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("blob")
 public class BlobController {
@@ -36,6 +38,12 @@ public class BlobController {
             @RequestHeader(DataLedgeUtil.USER_ID_HEADER) String userId) {
 
         String response = azureBlobRequestManager.saveAPIContentToBlob(apiUrl, blobFileName, userId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/getFiles")
+    public ResponseEntity<List<String>> getFiles(@RequestHeader(DataLedgeUtil.USER_ID_HEADER) String userId) {
+        var response = azureBlobRequestManager.getFiles(userId);
         return ResponseEntity.ok(response);
     }
 

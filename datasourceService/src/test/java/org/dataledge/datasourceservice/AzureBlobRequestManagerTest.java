@@ -26,7 +26,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ApiStorageServiceTest {
+class AzureBlobRequestManagerTest {
 
     @Mock
     private RestTemplate restTemplate;
@@ -41,46 +41,36 @@ class ApiStorageServiceTest {
 
     @Test
     void saveAPIContentToBlob_ShouldSaveSuccessfully_WhenApiReturnsDataAndFileIsNew() throws IOException {
-        // 1. ARRANGE
         String userId = "123";
         String fileName = "data.json";
         String apiUrl = "http://fake-api.com/data";
         String mockApiResponse = "{\"key\": \"value\"}";
 
-        // Mock the API call
         when(restTemplate.getForObject(apiUrl, String.class)).thenReturn(mockApiResponse);
 
-        // Mock the logic: File does NOT exist yet
         when(azureBlobStorage.exists(anyString())).thenReturn(false);
 
-        // Mock the write operation
         when(azureBlobStorage.write(any(Storage.class))).thenReturn("user123/data.json");
 
-        // 2. ACT
         String result = azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId);
 
-        // 3. ASSERT
         assertThat(result).isEqualTo("API content successfully saved!");
 
-        // Verify that the data passed to the write method matches the API response
         ArgumentCaptor<Storage> storageCaptor = ArgumentCaptor.forClass(Storage.class);
         verify(azureBlobStorage).write(storageCaptor.capture());
 
         Storage capturedStorage = storageCaptor.getValue();
         assertThat(capturedStorage.getFileName()).isEqualTo(fileName);
 
-        // Read the stream from the captured storage to ensure content matches
         String actualContent = new String(capturedStorage.getFileData().readAllBytes(), StandardCharsets.UTF_8);
         assertThat(actualContent).isEqualTo(mockApiResponse);
     }
 
     @Test
     void saveAPIContentToBlob_ShouldThrowException_WhenApiCallFails() {
-        // 1. ARRANGE
         String userId = "123";
         String apiUrl = "http://bad-api.com";
 
-        // Simulate API failure (e.g., 500 error or network timeout)
         when(restTemplate.getForObject(eq(apiUrl), eq(String.class)))
                 .thenThrow(new RuntimeException("Network Error"));
 

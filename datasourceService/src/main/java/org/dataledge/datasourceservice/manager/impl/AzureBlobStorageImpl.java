@@ -27,11 +27,9 @@ import java.util.List;
 @Slf4j
 public class AzureBlobStorageImpl implements IAzureBlobStorage {
 
-    private final BlobServiceClient blobServiceClient;
     private final BlobContainerClient blobContainerClient;
 
     public AzureBlobStorageImpl(final BlobServiceClient blobServiceClient, final BlobContainerClient blobContainerClient) {
-        this.blobServiceClient = blobServiceClient;
         this.blobContainerClient = blobContainerClient;
     }
 
@@ -83,7 +81,7 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
 
     @Override
     public List<String> listFiles(Storage storage) {
-        String pathPrefix = storage.getFileName() == null ? "" : storage.getFileName() + "/";
+        String pathPrefix = storage.getUserId() + "/";
         try {
             // listBlobsByHierarchy is the best choice for directory-like listing
             PagedIterable<BlobItem> blobList = blobContainerClient.listBlobsByHierarchy(pathPrefix);

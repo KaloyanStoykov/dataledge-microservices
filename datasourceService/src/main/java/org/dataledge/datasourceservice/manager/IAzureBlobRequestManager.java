@@ -4,6 +4,8 @@ import org.dataledge.datasourceservice.config.exceptions.BlobStorageOperationExc
 import org.dataledge.datasourceservice.config.exceptions.InvalidUserException;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 
 public interface IAzureBlobRequestManager {
     /**
@@ -36,4 +38,5 @@ public interface IAzureBlobRequestManager {
      */
     String sanitizeUserId(String userId);
 
+    List<String> getFiles(String userId);
 }

@@ -1,6 +1,7 @@
 package org.dataledge.datasourceservice.manager.impl;
 
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.dataledge.datasourceservice.config.rabbitmq.RabbitConfig;
 import org.dataledge.datasourceservice.data.datasources.DataSourceRepo;
 import org.dataledge.datasourceservice.dto.rabbitmq.UserDeletedEvent;
@@ -9,8 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class UserEventListener {
-    private DataSourceRepo dataSourceRepo;
+    private final DataSourceRepo dataSourceRepo;
     @Autowired
     public UserEventListener(DataSourceRepo dataSourceRepo) {
         this.dataSourceRepo = dataSourceRepo;
@@ -19,7 +21,7 @@ public class UserEventListener {
     @RabbitListener(queues = RabbitConfig.QUEUE_NAME)
     @Transactional
     public void handlerUserDeleted(UserDeletedEvent event){
-        System.out.println("User " + event.getUserId() + " was deleted. Cleaning up datasources...");
+        log.info("User " + event.getUserId() + " was deleted. Cleaning up datasources...");
 
         dataSourceRepo.deleteAllByUserId(event.getUserId());
     }

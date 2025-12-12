@@ -14,6 +14,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.regex.Pattern;
 
 @Service
@@ -68,6 +69,13 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
         } catch (IOException e) {
             throw new BlobStorageOperationException("Error writing blob to storage.");
         }
+    }
+
+    public List<String> getFiles(String userId){
+        String sanitizedUserId = sanitizeUserId(userId);
+        Storage storage  = new Storage(null, sanitizedUserId, null, null);
+
+        return azureBlobStorage.listFiles(storage);
     }
 
     @Override
