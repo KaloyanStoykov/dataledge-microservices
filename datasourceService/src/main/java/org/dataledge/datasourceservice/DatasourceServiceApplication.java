@@ -3,6 +3,12 @@ package org.dataledge.datasourceservice;
 import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import com.azure.core.credential.*;
+import com.azure.identity.*;
+import com.azure.storage.blob.*;
+import com.azure.storage.blob.models.*;
+import com.azure.storage.blob.specialized.*;
+import com.azure.storage.common.*;
 
 @SpringBootApplication
 public class DatasourceServiceApplication {
