@@ -38,5 +38,7 @@ public interface IAzureBlobRequestManager {
      */
     String sanitizeUserId(String userId);
 
+    void deleteUserBlobs(String userId, List<String> blobNamesToDelete) throws BlobStorageOperationException;
+
     List<String> getFiles(String userId);
 }

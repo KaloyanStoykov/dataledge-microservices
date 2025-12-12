@@ -73,10 +73,16 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
 
     public List<String> getFiles(String userId){
         String sanitizedUserId = sanitizeUserId(userId);
-        Storage storage  = new Storage(null, sanitizedUserId, null, null);
-
-        return azureBlobStorage.listFiles(storage);
+        return azureBlobStorage.listFiles(sanitizedUserId);
     }
+
+    @Override
+    public void deleteUserBlobs(String userId, List<String> blobNamesToDelete) throws BlobStorageOperationException {
+        String sanitizedUserId = sanitizeUserId(userId);
+
+        azureBlobStorage.deleteFilesBatch(sanitizedUserId, blobNamesToDelete);
+    }
+
 
     @Override
     public String writeFileToBlob(MultipartFile file, String requestedFileName, String userId) throws BlobStorageOperationException {

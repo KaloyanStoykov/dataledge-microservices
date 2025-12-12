@@ -219,6 +219,13 @@
             <artifactId>spring-cloud-azure-starter-storage-blob</artifactId>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/com.azure/azure-storage-blob-batch -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob-batch</artifactId>
+            <version>12.28.0</version>
+        </dependency>
+
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-blob</artifactId>

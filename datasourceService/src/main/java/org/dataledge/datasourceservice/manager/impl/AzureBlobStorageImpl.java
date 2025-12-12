@@ -3,16 +3,16 @@ package org.dataledge.datasourceservice.manager.impl;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.batch.BlobBatchClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.models.DeleteSnapshotsOptionType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.dataledge.datasourceservice.config.exceptions.BlobStorageOperationException;
 import org.dataledge.datasourceservice.dto.Storage;
 import org.dataledge.datasourceservice.manager.IAzureBlobStorage;
 import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -26,11 +26,12 @@ import java.util.List;
 @Service
 @Slf4j
 public class AzureBlobStorageImpl implements IAzureBlobStorage {
-
     private final BlobContainerClient blobContainerClient;
+    private final BlobBatchClient blobBatchClient;
 
-    public AzureBlobStorageImpl(final BlobServiceClient blobServiceClient, final BlobContainerClient blobContainerClient) {
+    public AzureBlobStorageImpl(final BlobContainerClient blobContainerClient,  final BlobBatchClient blobBatchClient) {
         this.blobContainerClient = blobContainerClient;
+        this.blobBatchClient = blobBatchClient;
     }
 
 
@@ -80,8 +81,8 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
 
 
     @Override
-    public List<String> listFiles(Storage storage) {
-        String pathPrefix = storage.getUserId() + "/";
+    public List<String> listFiles(String userId) {
+        String pathPrefix = userId + "/";
         try {
             // listBlobsByHierarchy is the best choice for directory-like listing
             PagedIterable<BlobItem> blobList = blobContainerClient.listBlobsByHierarchy(pathPrefix);
@@ -97,6 +98,32 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
         } catch (BlobStorageException e) {
             log.error("Failed to list files with prefix: {}", pathPrefix, e);
             throw new BlobStorageOperationException("Failed to list files in path: " + pathPrefix, e);
+        }
+    }
+
+    @Override
+    public void deleteFilesBatch(String userId, List<String> blobNamesToDelete) {
+        String pathPrefix = userId + "/";
+
+        // Filter list for security first
+        List<String> validBlobs = blobNamesToDelete.stream()
+                .filter(name -> name.startsWith(pathPrefix))
+                .map(name -> blobContainerClient.getBlobClient(name).getBlobUrl()) // <--- THIS IS THE FIX
+                .toList();
+
+        if (validBlobs.isEmpty()) return;
+
+        try {
+            // Note: Batch operations usually have a limit (e.g., 256 per batch).
+            blobBatchClient.deleteBlobs(validBlobs, DeleteSnapshotsOptionType.INCLUDE).forEach(response -> {
+                if (response.getStatusCode() != 202) {
+                    log.error("Failed to delete blob via batch");
+                }
+            });
+            log.info("Batch deletion request completed for {} files.", validBlobs.size());
+        } catch (Exception e) {
+            log.error("Batch delete failed", e);
+            throw new BlobStorageOperationException("Batch delete failed", e);
         }
     }
 

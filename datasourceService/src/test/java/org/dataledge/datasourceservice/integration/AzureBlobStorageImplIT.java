@@ -1,6 +1,8 @@
 package org.dataledge.datasourceservice.integration;
 
 import com.azure.storage.blob.*;
+import com.azure.storage.blob.batch.BlobBatchClient;
+import com.azure.storage.blob.batch.BlobBatchClientBuilder;
 import net.bytebuddy.utility.RandomString;
 import org.dataledge.datasourceservice.config.exceptions.BlobStorageOperationException;
 import org.dataledge.datasourceservice.dto.Storage;
@@ -48,13 +50,15 @@ class AzureBlobStorageImplIT {
                 .connectionString(connectionString)
                 .buildClient();
 
+        BlobBatchClient blobBatchClient = new BlobBatchClientBuilder(blobServiceClient).buildClient();
+
         String containerName = RandomString.make().toLowerCase();
         realContainerClient = blobServiceClient.createBlobContainer(containerName);
 
 
         azureBlobStorageImpl = new AzureBlobStorageImpl(
-                blobServiceClient,
-                realContainerClient
+                realContainerClient,
+                blobBatchClient
         );
     }
 
@@ -139,8 +143,7 @@ class AzureBlobStorageImplIT {
     void listFiles_ShouldReturnOnlyFiles_AndIgnoreSubfolders_Integration() {
         // 1. ARRANGE
         // Create a unique folder name so this test doesn't clash with others
-        String folderName = "test-folder-" + RandomString.make(5);
-
+        String folderName = "user-23";
         // We expect the service to look for "folderName/"
         // Let's seed the container with 3 items:
         // 1. A standard file in the folder (Should be returned)
@@ -156,12 +159,9 @@ class AzureBlobStorageImplIT {
         uploadString(file2);
         uploadString(nestedFile);
 
-        // Prepare input DTO
-        // Your code uses getFileName() as the directory path
-        Storage storage = new Storage(null, "user-1", folderName, 0L);
 
         // 2. ACT
-        List<String> results = azureBlobStorageImpl.listFiles(storage);
+        List<String> results = azureBlobStorageImpl.listFiles("user-23");
 
         // 3. ASSERT
         // We expect exactly 2 items.
@@ -176,12 +176,8 @@ class AzureBlobStorageImplIT {
 
     @Test
     void listFiles_ShouldReturnEmptyList_WhenFolderIsNew() {
-        // 1. ARRANGE
-        String nonExistentFolder = "ghost-folder-" + RandomString.make(5);
-        Storage storage = new Storage(null, "user-1", nonExistentFolder, 0L);
-
         // 2. ACT
-        List<String> results = azureBlobStorageImpl.listFiles(storage);
+        List<String> results = azureBlobStorageImpl.listFiles("user-1");
 
         // 3. ASSERT
         assertThat(results).isNotNull();
@@ -195,11 +191,10 @@ class AzureBlobStorageImplIT {
         realContainerClient.delete();
 
         try {
-            Storage storage = new Storage(null, "user-1", "any-folder", 0L);
 
             // 2. ACT & ASSERT
             // Azure SDK throws BlobStorageException (404) -> Your code wraps it in BlobStorageOperationException
-            assertThrows(BlobStorageOperationException.class, () -> azureBlobStorageImpl.listFiles(storage));
+            assertThrows(BlobStorageOperationException.class, () -> azureBlobStorageImpl.listFiles("user-1"));
 
         } finally {
             // 3. CLEANUP (CRITICAL)

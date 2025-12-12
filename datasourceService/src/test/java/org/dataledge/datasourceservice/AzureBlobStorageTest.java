@@ -2,7 +2,7 @@ package org.dataledge.datasourceservice;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.batch.BlobBatchClient;
 import org.dataledge.datasourceservice.dto.Storage;
 import org.dataledge.datasourceservice.manager.impl.AzureBlobStorageImpl;
 import org.junit.jupiter.api.Test;
@@ -25,8 +25,8 @@ public class AzureBlobStorageTest {
 
     @Test
     void write_ShouldCatchException_AndThrowIOException_WhenUploadFails() {
-        BlobServiceClient mockServiceClient = Mockito.mock(BlobServiceClient.class);
         BlobContainerClient mockContainerClient = Mockito.mock(BlobContainerClient.class);
+        BlobBatchClient mockBatchClient = Mockito.mock(BlobBatchClient.class);
         BlobClient mockBlobClient = Mockito.mock(BlobClient.class);
 
         when(mockContainerClient.getBlobClient(anyString())).thenReturn(mockBlobClient);
@@ -35,8 +35,8 @@ public class AzureBlobStorageTest {
                 .when(mockBlobClient).upload(org.mockito.ArgumentMatchers.any(),anyLong());
 
         AzureBlobStorageImpl serviceUnderTest = new AzureBlobStorageImpl(
-                mockServiceClient,
-                mockContainerClient
+                mockContainerClient,
+                mockBatchClient
         );
 
         String userId = "user-error-test";
@@ -62,8 +62,9 @@ public class AzureBlobStorageTest {
         String fileName = "fail.txt";
         String expectedPath = userId + "/" + fileName;
 
-        BlobServiceClient mockServiceClient = Mockito.mock(BlobServiceClient.class);
         BlobContainerClient mockContainerClient = Mockito.mock(BlobContainerClient.class);
+        BlobBatchClient mockBatchClient = Mockito.mock(BlobBatchClient.class);
+
         BlobClient mockBlobClient = Mockito.mock(BlobClient.class);
 
         // Wire up the container to return our mock blob client
@@ -73,8 +74,8 @@ public class AzureBlobStorageTest {
                 .thenThrow(new RuntimeException("Simulated Azure Connection Failure"));
 
         AzureBlobStorageImpl serviceUnderTest = new AzureBlobStorageImpl(
-                mockServiceClient,
-                mockContainerClient
+                mockContainerClient,
+                mockBatchClient
         );
 
         // 2. ACT
