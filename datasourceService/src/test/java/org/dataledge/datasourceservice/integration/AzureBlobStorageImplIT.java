@@ -203,6 +203,75 @@ class AzureBlobStorageImplIT {
         }
     }
 
+    @Test
+    void deleteFilesBatch_ShouldDeleteOnlySpecificUserFiles_Integration() {
+        // 1. ARRANGE
+        String userId = "user-delete-test";
+
+        // Create 3 files:
+        // Two belong to the user
+        String file1 = userId + "/doc1.txt";
+        String file2 = userId + "/doc2.txt";
+        // One belongs to a DIFFERENT user (Security Check)
+        String otherUserFile = "user-other/secret.txt";
+
+        uploadString(file1);
+        uploadString(file2);
+        uploadString(otherUserFile);
+
+        // Input list contains the user's files AND the other user's file (simulating a malicious request)
+        List<String> filesToDelete = List.of(file1, file2, otherUserFile);
+
+        // 2. ACT
+        azureBlobStorageImpl.deleteFilesBatch(userId, filesToDelete);
+
+        // 3. ASSERT
+        // The user's files should be gone
+        assertThat(realContainerClient.getBlobClient(file1).exists()).isFalse();
+        assertThat(realContainerClient.getBlobClient(file2).exists()).isFalse();
+
+        // The OTHER user's file must still exist (because of the startsWith filter in your code)
+        assertThat(realContainerClient.getBlobClient(otherUserFile).exists()).isTrue();
+    }
+
+    @Test
+    void deleteFilesBatch_ShouldDoNothing_WhenListIsEmpty() {
+        // 1. ARRANGE
+        String userId = "user-empty-batch";
+        String file1 = userId + "/keep-me.txt";
+        uploadString(file1);
+
+        // 2. ACT
+        azureBlobStorageImpl.deleteFilesBatch(userId, List.of());
+
+        // 3. ASSERT
+        // File should still exist because list was empty
+        assertThat(realContainerClient.getBlobClient(file1).exists()).isTrue();
+    }
+
+    @Test
+    void deleteFilesBatch_ShouldThrowException_WhenContainerMissing() {
+        // 1. ARRANGE
+        // Simulate a major failure (container deleted)
+        realContainerClient.delete();
+
+        try {
+            String userId = "user-fail";
+            List<String> files = List.of(userId + "/file1.txt");
+
+            // 2. ACT & ASSERT
+            // The batch client will attempt to execute and fail because the container is gone
+            assertThrows(BlobStorageOperationException.class, () ->
+                    azureBlobStorageImpl.deleteFilesBatch(userId, files)
+            );
+
+        } finally {
+            // 3. CLEANUP
+            // Must recreate container for other tests
+            realContainerClient.create();
+        }
+    }
+
     private void uploadString(String blobPath) {
         realContainerClient.getBlobClient(blobPath)
                 .upload(new ByteArrayInputStream("dummy-content".getBytes()), 13, true);

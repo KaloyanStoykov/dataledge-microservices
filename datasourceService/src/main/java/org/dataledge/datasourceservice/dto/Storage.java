@@ -2,16 +2,16 @@ package org.dataledge.datasourceservice.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.InputStream;
 
-@Data
 @AllArgsConstructor
+@NoArgsConstructor
+@Data
 public class Storage {
-    private final InputStream fileData;
-    private final String userId;
-    private final String fileName;
-    private final Long contentLength;
+    private InputStream fileData;
+    private String userId;
+    private String fileName;
+    private long contentLength;
 }
-
-
