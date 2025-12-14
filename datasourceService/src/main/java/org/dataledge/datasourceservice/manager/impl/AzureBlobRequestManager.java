@@ -13,6 +13,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -33,6 +35,29 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
     @Override
     public String saveAPIContentToBlob(String apiUrl, String blobFileName, String userId) throws BlobStorageOperationException {
         String sanitizedUserId = sanitizeUserId(userId);
+
+        URI uri = URI.create(apiUrl);
+        String host = uri.getHost();
+
+        // 1. Check Protocol
+        if (!"https".equalsIgnoreCase(uri.getScheme())) {
+            throw new BlobStorageOperationException("Only HTTPS allowed");
+        }
+
+        // 2. Resolve Host to IP and check for Internal Addresses
+        try {
+            InetAddress address = InetAddress.getByName(host);
+
+            if (address.isLoopbackAddress() ||  // 127.0.0.1
+                    address.isSiteLocalAddress() || // 192.168.x.x, 10.x.x.x, etc.
+                    address.isLinkLocalAddress() || // 169.254.x.x
+                    address.isAnyLocalAddress()) {  // 0.0.0.0
+
+                throw new BlobStorageOperationException("Access to internal network is denied.");
+            }
+        } catch (Exception e) {
+            throw new BlobStorageOperationException("Could not validate host IP");
+        }
 
         // 1. Fetch data from the external API
         String apiResponse;
