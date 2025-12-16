@@ -1,7 +1,9 @@
 package org.dataledge.datasourceservice.manager.impl;
 
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.dataledge.datasourceservice.data.DataType;
 import org.dataledge.datasourceservice.data.DataTypeRepo;
 import org.dataledge.datasourceservice.data.datasources.DataSource;
@@ -24,6 +26,7 @@ import java.util.Optional;
  */
 @Service
 @AllArgsConstructor
+@Slf4j
 public class DataSourceManager implements IDataSourceManager {
 
     // JPA Pageable repository
@@ -67,7 +70,12 @@ public class DataSourceManager implements IDataSourceManager {
         return new GetDataSourcesResponse(items, pageResult.getTotalElements(), pageNumber, pageSize);
     }
 
-
+    /**
+     *
+     * @param userId - header userId from auth
+     * @param request - request to create a new datasource
+     * @return create response with message
+     */
     @Override
     public CreateDataSourceResponse createDataSource(String userId, CreateDataSourceRequest request) {
         Optional<DataType> type = dataTypeRepo.findById(request.getTypeId());
@@ -93,15 +101,40 @@ public class DataSourceManager implements IDataSourceManager {
 
     }
 
+    /**
+     *
+     * @param userId - the header userId used to identify who sent the request
+     * @param id - id of the datasource to delete in the database
+     * @return response with success message
+     */
     @Override
-    public DeleteDataSourceResponse deleteDataSource(int id) {
+    public DeleteDataSourceResponse deleteDataSource(String userId, int id) {
         DataSource dataSource = dataSourceRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Unknown datasource id"));
+
+        log.info("Parsing user id for string {}", userId);
+        int parsedUserId;
+        // Parse userId from header
+        try {
+            parsedUserId = Integer.parseInt(userId);
+        }
+        catch (NumberFormatException e) {
+            log.error("Parsing: Invalid userID: {}", userId);
+            throw new NotFoundException("Invalid user ID: {}" + userId);
+        }
+
+        // Check delete is for own datasource
+        if(parsedUserId != dataSource.getUserId()) {
+            log.error("ID's for users dont match datasource\nRequested id: {}", parsedUserId);
+            throw new ForbiddenException("User can delete only own datasource!");
+        }
 
         dataSourceRepo.delete(dataSource);
 
         return new DeleteDataSourceResponse("Datasource deleted successfully!");
     }
+
+
 
 
 }

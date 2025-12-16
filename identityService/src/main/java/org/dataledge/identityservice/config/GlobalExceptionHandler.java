@@ -1,6 +1,5 @@
 package org.dataledge.identityservice.config;
 
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.ws.rs.NotFoundException;
 import org.dataledge.identityservice.config.exceptions.ExistingEmailException;

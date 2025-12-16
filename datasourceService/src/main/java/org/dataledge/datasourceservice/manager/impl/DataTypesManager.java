@@ -4,12 +4,10 @@ import jakarta.ws.rs.NotFoundException;
 import lombok.AllArgsConstructor;
 import org.dataledge.datasourceservice.data.DataTypeRepo;
 import org.dataledge.datasourceservice.dto.datatypesDTO.DataTypeListResponse;
-import org.dataledge.datasourceservice.dto.datatypesDTO.DataTypeResponse;
 import org.dataledge.datasourceservice.manager.IDataTypeMapper;
 import org.dataledge.datasourceservice.manager.IDataTypesManager;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 
 /***
  * @author Kaloyan Stoykov

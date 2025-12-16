@@ -1,5 +1,6 @@
 package org.dataledge.datasourceservice;
 
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import org.dataledge.datasourceservice.data.DataType;
 import org.dataledge.datasourceservice.data.DataTypeRepo;
@@ -8,7 +9,6 @@ import org.dataledge.datasourceservice.data.datasources.DataSourceRepo;
 import org.dataledge.datasourceservice.dto.datasourcesDTO.*;
 import org.dataledge.datasourceservice.manager.IDataSourceMapper;
 import org.dataledge.datasourceservice.manager.impl.DataSourceManager;
-import org.dataledge.datasourceservice.manager.impl.DataSourceMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -45,7 +45,6 @@ public class DataSourceManagerTest {
 
     @Test
     void getDataSources_success_returnsData() {
-        // Arrange
         int pageNumber = 0;
         int pageSize = 10;
         long totalElements = 25;
@@ -53,7 +52,6 @@ public class DataSourceManagerTest {
         DataType dataType = new DataType(1L, "API", "API to work with datasources", null);
 
 
-        // Mock entities and DTOs
         DataSource entity1 = DataSource.builder()
                 .id(1L)
                 .name("Test Name")
@@ -62,7 +60,7 @@ public class DataSourceManagerTest {
                 .url("http://test-url.com")
                 .created(Instant.now())
                 .updated(new Date())
-                .userId(1) // explicitly set the userId
+                .userId(1)
                 .build();
 
         DataSource entity2 = DataSource.builder()
@@ -73,7 +71,7 @@ public class DataSourceManagerTest {
                 .url("http://test-url.com")
                 .created(Instant.now())
                 .updated(new Date())
-                .userId(1) // explicitly set the userId
+                .userId(1)
                 .build();
 
         DataSourceResponse dto1 = new DataSourceResponse(1L, "Customer DB", dataType, "Customer DB for Censly.", "jdbc:postgresql://localhost:5432/customers", Instant.now(), Date.from(Instant.parse("2019-04-20T00:00:00Z")));
@@ -82,15 +80,12 @@ public class DataSourceManagerTest {
         List<DataSource> entities = List.of(entity1, entity2);
         Page<DataSource> page = new PageImpl<>(entities, PageRequest.of(pageNumber, pageSize), totalElements);
 
-        // Mock repository call
         when(dataSourceRepo.findAllByUserId(1, PageRequest.of(pageNumber, pageSize)))
                 .thenReturn(page);
 
-        // Mock mapping
         when(mapper.toDataSourceResponse(entity1)).thenReturn(dto1);
         when(mapper.toDataSourceResponse(entity2)).thenReturn(dto2);
 
-        // Act
         GetDataSourcesResponse response = dataSourceManager.getDataSources("1", pageNumber, pageSize);
 
         // Assert
@@ -120,6 +115,20 @@ public class DataSourceManagerTest {
 
         assertThrows(NotFoundException.class, () -> dataSourceManager.getDataSources("1", pageNumber, pageSize));
 
+    }
+
+    @Test
+    void getDataSources_throwException_invalidUserId() {
+        String invalidUserId = "notANumber";
+
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> dataSourceManager.getDataSources(invalidUserId, 0, 10));
+
+        assertThat(thrown.getMessage()).contains("Invalid user ID: " + invalidUserId);
+
+        verify(dataSourceRepo, never()).findAllByUserId(
+                any(Integer.class),
+                any(PageRequest.class)
+        );
     }
 
     @Test
@@ -167,16 +176,36 @@ public class DataSourceManagerTest {
     }
 
     @Test
+    void createDataSource_unknownType_throwsNotFoundException() {
+        String userId = "1";
+        long nonExistentTypeId = 99L;
+
+        CreateDataSourceRequest request = new CreateDataSourceRequest();
+        request.setTypeId(nonExistentTypeId);
+        request.setName("Test Name");
+
+        when(dataTypeRepo.findById(nonExistentTypeId)).thenReturn(Optional.empty());
+
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> dataSourceManager.createDataSource(userId, request));
+
+        assertThat(thrown.getMessage()).isEqualTo("Unknown datasource type");
+
+        verify(dataTypeRepo).findById(nonExistentTypeId);
+        verify(dataSourceRepo, never()).save(any(DataSource.class));
+    }
+
+    @Test
     void deleteDataSource_success() {
         int dataSourceId = 1;
         DataSource mockEntity = DataSource.builder()
                 .id((long) dataSourceId)
                 .name("To Be Deleted")
+                .userId(1)
                 .build();
 
         when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));
 
-        DeleteDataSourceResponse response = dataSourceManager.deleteDataSource(dataSourceId);
+        DeleteDataSourceResponse response = dataSourceManager.deleteDataSource("1", dataSourceId);
 
         assertThat(response).isNotNull();
         assertThat(response.getMessage()).isEqualTo("Datasource deleted successfully!");
@@ -186,14 +215,54 @@ public class DataSourceManagerTest {
     }
 
     @Test
+    void deleteDataSource_invalidUserIdFormat_throwsNotFoundException() {
+        int dataSourceId = 1;
+        String invalidUserId = "notANumber";
+
+        DataSource mockEntity = DataSource.builder()
+                .id((long) dataSourceId)
+                .name("To Be Deleted")
+                .userId(1)
+                .build();
+
+        when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));
+
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> dataSourceManager.deleteDataSource(invalidUserId, dataSourceId));
+
+        assertThat(thrown.getMessage()).contains("Invalid user ID:").contains(invalidUserId);
+
+        verify(dataSourceRepo, never()).delete(any(DataSource.class));
+    }
+
+    @Test
+    void deleteDataSource_userIdMismatch_throwsForbiddenException() {
+        int dataSourceId = 1;
+        String requestedUserId = "10";
+        long actualDataSourceOwnerId = 5L; // Different from requestedUserId
+
+        DataSource mockEntity = DataSource.builder()
+                .id((long) dataSourceId)
+                .name("To Be Deleted")
+                .userId((int)actualDataSourceOwnerId)
+                .build();
+
+        when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));
+
+        ForbiddenException thrown = assertThrows(ForbiddenException.class, () -> dataSourceManager.deleteDataSource(requestedUserId, dataSourceId));
+
+        assertThat(thrown.getMessage()).isEqualTo("User can delete only own datasource!");
+
+        verify(dataSourceRepo).findById(dataSourceId);
+        verify(dataSourceRepo, never()).delete(any(DataSource.class));
+    }
+
+    @Test
     void deleteDataSource_notFound_throwsException() {
         int nonExistentId = 99;
 
         when(dataSourceRepo.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
-            dataSourceManager.deleteDataSource(nonExistentId);
-        });
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> dataSourceManager.deleteDataSource("1", nonExistentId));
 
         assertThat(thrown.getMessage()).isEqualTo("Unknown datasource id");
 
