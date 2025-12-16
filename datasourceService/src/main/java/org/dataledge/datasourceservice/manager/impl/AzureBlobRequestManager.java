@@ -13,9 +13,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URI;
-import java.nio.charset.Charset;
+import java.net.URL;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -25,60 +26,77 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
 
     private final IAzureBlobStorage azureBlobStorage;
 
-    private final RestTemplate restTemplate;
 
-    public AzureBlobRequestManager(IAzureBlobStorage azureBlobStorage, RestTemplate restTemplate) {
+    public AzureBlobRequestManager(IAzureBlobStorage azureBlobStorage) {
         this.azureBlobStorage = azureBlobStorage;
-        this.restTemplate = restTemplate;
     }
 
     @Override
     public String saveAPIContentToBlob(String apiUrl, String blobFileName, String userId) throws BlobStorageOperationException {
         String sanitizedUserId = sanitizeUserId(userId);
 
-        URI uri = URI.create(apiUrl);
-        String host = uri.getHost();
-
-        // 1. Check Protocol
-        if (!"https".equalsIgnoreCase(uri.getScheme())) {
-            throw new BlobStorageOperationException("Only HTTPS allowed");
+        // 1. Strict Protocol Check (Reject non-HTTPS immediately)
+        URI uri;
+        try {
+            uri = URI.create(apiUrl);
+            if (!"https".equalsIgnoreCase(uri.getScheme())) {
+                throw new BlobStorageOperationException("Only HTTPS allowed");
+            }
+        } catch (IllegalArgumentException e) {
+            throw new BlobStorageOperationException("Invalid URL format");
         }
 
-        // 2. Resolve Host to IP and check for Internal Addresses
+        // 2. Resolve IP and Check Blocklist
+        // Note: This reduces risk but does not eliminate DNS Rebinding (see note below)
         try {
-            InetAddress address = InetAddress.getByName(host);
-
-            if (address.isLoopbackAddress() ||  // 127.0.0.1
-                    address.isSiteLocalAddress() || // 192.168.x.x, 10.x.x.x, etc.
-                    address.isLinkLocalAddress() || // 169.254.x.x
-                    address.isAnyLocalAddress()) {  // 0.0.0.0
-
+            InetAddress address = InetAddress.getByName(uri.getHost());
+            if (address.isLoopbackAddress() || address.isSiteLocalAddress() ||
+                    address.isLinkLocalAddress() || address.isAnyLocalAddress()) {
                 throw new BlobStorageOperationException("Access to internal network is denied.");
             }
         } catch (Exception e) {
             throw new BlobStorageOperationException("Could not validate host IP");
         }
 
-        // 1. Fetch data from the external API
-        String apiResponse;
+        // 3. Fetch data using HttpURLConnection (Replaces RestTemplate)
+        byte[] contentBytes;
         try {
-            // Only guard the risky network call
-            apiResponse = restTemplate.getForObject(apiUrl, String.class);
+            URL url = uri.toURL();
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+            // CRITICAL: Disable automatic redirects.
+            // Attackers use redirects to bypass the IP check above.
+            connection.setInstanceFollowRedirects(false);
+
+            // Security Timeouts (Prevent DoS)
+            connection.setConnectTimeout(3000); // 3 seconds to connect
+            connection.setReadTimeout(5000);    // 5 seconds to read
+
+            connection.connect();
+
+            // Ensure we got a 200 OK (and not a 301/302 Redirect to an internal IP)
+            int responseCode = connection.getResponseCode();
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                throw new BlobStorageOperationException("API call failed or attempted redirect. Code: " + responseCode);
+            }
+
+            // Read content safely (Limit size to avoid Memory Exhaustion)
+            try (InputStream in = connection.getInputStream()) {
+                // Read max 10MB (adjust as needed)
+                contentBytes = in.readNBytes(10 * 1024 * 1024);
+            }
+
         } catch (Exception e) {
-            // This catches network/timeout errors
-            throw new BlobStorageOperationException("Failed to call external API: " + apiUrl, e);
+            throw new BlobStorageOperationException("Failed to safely call external API: " + apiUrl, e);
         }
 
-        // 2. Validate (Outside the try/catch)
-        if (apiResponse == null) {
-            // This will now propagate correctly to the test
+        // 4. Validate Content
+        if (contentBytes == null || contentBytes.length == 0) {
             throw new BlobStorageOperationException("API returned no content.");
         }
 
-        // 3. Convert and Save
-        byte[] contentBytes = apiResponse.getBytes(Charset.defaultCharset());
+        // 5. Save to Blob Storage (Existing Logic)
         long contentSize = contentBytes.length;
-
         try (InputStream dataStream = new ByteArrayInputStream(contentBytes)) {
             String potentialBlobPath = sanitizedUserId + "/" + blobFileName;
 
@@ -87,7 +105,7 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
             }
 
             Storage writeStorage = new Storage(dataStream, sanitizedUserId, blobFileName, contentSize);
-            String blobPath = azureBlobStorage.write(writeStorage);
+            azureBlobStorage.write(writeStorage);
 
             return "API content successfully saved!";
 
