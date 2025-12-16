@@ -9,7 +9,7 @@ public class InvalidUserException extends RuntimeException {
 
     /**
      * Constructs a new InvalidUserException with the specified detail message.
-     * * @param message the detail message.
+     * @param message the detail message.
      */
     public InvalidUserException(String message) {
         super(message);

@@ -7,16 +7,12 @@ import org.dataledge.datasourceservice.dto.Storage;
 import org.dataledge.datasourceservice.manager.IAzureBlobRequestManager;
 import org.dataledge.datasourceservice.manager.IAzureBlobStorage;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.URL;
+import java.net.*;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -32,10 +28,35 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
     }
 
     @Override
-    public String saveAPIContentToBlob(String apiUrl, String blobFileName, String userId) throws BlobStorageOperationException {
+    public String saveAPIContentToBlob(String apiUrl, String blobFileName, String userId) {
         String sanitizedUserId = sanitizeUserId(userId);
 
-        // 1. Strict Protocol Check (Reject non-HTTPS immediately)
+        // 1. Check if file exists (Move this UP to save network bandwidth)
+        // It is better to check existence BEFORE downloading the file.
+        String potentialBlobPath = sanitizedUserId + "/" + blobFileName;
+        if (azureBlobStorage.exists(potentialBlobPath)) {
+            throw new BlobStorageOperationException("File already exists at path: " + potentialBlobPath);
+        }
+
+        // 2. Fetch Data (Delegated to a separate method for testability)
+        byte[] contentBytes = fetchSecurely(apiUrl);
+
+        if (contentBytes == null || contentBytes.length == 0) {
+            throw new BlobStorageOperationException("API returned no content.");
+        }
+
+        // 3. Save to Blob Storage
+        try (InputStream dataStream = new ByteArrayInputStream(contentBytes)) {
+            Storage writeStorage = new Storage(dataStream, sanitizedUserId, blobFileName, (long) contentBytes.length);
+            azureBlobStorage.write(writeStorage);
+            return "API content successfully saved!";
+        } catch (IOException e) {
+            throw new BlobStorageOperationException("Error writing blob to storage.", e);
+        }
+    }
+
+
+    public byte[] fetchSecurely(String apiUrl) {
         URI uri;
         try {
             uri = URI.create(apiUrl);
@@ -46,10 +67,9 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
             throw new BlobStorageOperationException("Invalid URL format");
         }
 
-        // 2. Resolve IP and Check Blocklist
-        // Note: This reduces risk but does not eliminate DNS Rebinding (see note below)
+        // REFRACTOR 1: Use helper method for DNS resolution
         try {
-            InetAddress address = InetAddress.getByName(uri.getHost());
+            InetAddress address = resolveHost(uri.getHost());
             if (address.isLoopbackAddress() || address.isSiteLocalAddress() ||
                     address.isLinkLocalAddress() || address.isAnyLocalAddress()) {
                 throw new BlobStorageOperationException("Access to internal network is denied.");
@@ -58,62 +78,43 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
             throw new BlobStorageOperationException("Could not validate host IP");
         }
 
-        // 3. Fetch data using HttpURLConnection (Replaces RestTemplate)
-        byte[] contentBytes;
+        // REFRACTOR 2: Use helper method for Connection creation
         try {
             URL url = uri.toURL();
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-
-            // CRITICAL: Disable automatic redirects.
-            // Attackers use redirects to bypass the IP check above.
+            HttpURLConnection connection = createConnection(url);
             connection.setInstanceFollowRedirects(false);
-
-            // Security Timeouts (Prevent DoS)
-            connection.setConnectTimeout(3000); // 3 seconds to connect
-            connection.setReadTimeout(5000);    // 5 seconds to read
-
+            connection.setConnectTimeout(3000);
+            connection.setReadTimeout(5000);
             connection.connect();
 
-            // Ensure we got a 200 OK (and not a 301/302 Redirect to an internal IP)
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                throw new BlobStorageOperationException("API call failed or attempted redirect. Code: " + responseCode);
+                throw new BlobStorageOperationException("Failed to call external API. Code: " + responseCode);
             }
 
-            // Read content safely (Limit size to avoid Memory Exhaustion)
             try (InputStream in = connection.getInputStream()) {
-                // Read max 10MB (adjust as needed)
-                contentBytes = in.readNBytes(10 * 1024 * 1024);
+                return in.readNBytes(10 * 1024 * 1024);
             }
-
         } catch (Exception e) {
-            throw new BlobStorageOperationException("Failed to safely call external API: " + apiUrl, e);
-        }
-
-        // 4. Validate Content
-        if (contentBytes == null || contentBytes.length == 0) {
-            throw new BlobStorageOperationException("API returned no content.");
-        }
-
-        // 5. Save to Blob Storage (Existing Logic)
-        long contentSize = contentBytes.length;
-        try (InputStream dataStream = new ByteArrayInputStream(contentBytes)) {
-            String potentialBlobPath = sanitizedUserId + "/" + blobFileName;
-
-            if (azureBlobStorage.exists(potentialBlobPath)) {
-                throw new BlobStorageOperationException("File already exists at path: " + potentialBlobPath);
+            if (e.getMessage() != null && e.getMessage().contains("Failed to call external API")) {
+                assert e instanceof BlobStorageOperationException;
+                throw (BlobStorageOperationException) e;
             }
-
-            Storage writeStorage = new Storage(dataStream, sanitizedUserId, blobFileName, contentSize);
-            azureBlobStorage.write(writeStorage);
-
-            return "API content successfully saved!";
-
-        } catch (IOException e) {
-            throw new BlobStorageOperationException("Error writing blob to storage.");
+            throw new BlobStorageOperationException("Failed to call external API: " + apiUrl, e);
         }
     }
 
+// --- Protected Helper Methods (Overridable in Tests) ---
+
+    public InetAddress resolveHost(String host) throws UnknownHostException {
+        return InetAddress.getByName(host);
+    }
+
+    public HttpURLConnection createConnection(URL url) throws IOException {
+        return (HttpURLConnection) url.openConnection();
+    }
+
+    @Override
     public List<String> getFiles(String userId){
         String sanitizedUserId = sanitizeUserId(userId);
         return azureBlobStorage.listFiles(sanitizedUserId);

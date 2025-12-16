@@ -78,13 +78,8 @@ public class AzureBlobStorageTest {
                 mockBatchClient
         );
 
-        // 2. ACT
-        // We do NOT use assertThrows because your code catches the exception
         boolean result = serviceUnderTest.exists(expectedPath);
 
-        // 3. ASSERT
-        // Your code says: catch (Exception e) { return false; }
-        // So we expect false.
         assertThat(result).isFalse();
     }
 }

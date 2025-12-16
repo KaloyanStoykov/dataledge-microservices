@@ -45,7 +45,6 @@ public class DataSourceManagerTest {
 
     @Test
     void getDataSources_success_returnsData() {
-        // Arrange
         int pageNumber = 0;
         int pageSize = 10;
         long totalElements = 25;
@@ -53,7 +52,6 @@ public class DataSourceManagerTest {
         DataType dataType = new DataType(1L, "API", "API to work with datasources", null);
 
 
-        // Mock entities and DTOs
         DataSource entity1 = DataSource.builder()
                 .id(1L)
                 .name("Test Name")
@@ -62,7 +60,7 @@ public class DataSourceManagerTest {
                 .url("http://test-url.com")
                 .created(Instant.now())
                 .updated(new Date())
-                .userId(1) // explicitly set the userId
+                .userId(1)
                 .build();
 
         DataSource entity2 = DataSource.builder()
@@ -73,7 +71,7 @@ public class DataSourceManagerTest {
                 .url("http://test-url.com")
                 .created(Instant.now())
                 .updated(new Date())
-                .userId(1) // explicitly set the userId
+                .userId(1)
                 .build();
 
         DataSourceResponse dto1 = new DataSourceResponse(1L, "Customer DB", dataType, "Customer DB for Censly.", "jdbc:postgresql://localhost:5432/customers", Instant.now(), Date.from(Instant.parse("2019-04-20T00:00:00Z")));
@@ -82,15 +80,12 @@ public class DataSourceManagerTest {
         List<DataSource> entities = List.of(entity1, entity2);
         Page<DataSource> page = new PageImpl<>(entities, PageRequest.of(pageNumber, pageSize), totalElements);
 
-        // Mock repository call
         when(dataSourceRepo.findAllByUserId(1, PageRequest.of(pageNumber, pageSize)))
                 .thenReturn(page);
 
-        // Mock mapping
         when(mapper.toDataSourceResponse(entity1)).thenReturn(dto1);
         when(mapper.toDataSourceResponse(entity2)).thenReturn(dto2);
 
-        // Act
         GetDataSourcesResponse response = dataSourceManager.getDataSources("1", pageNumber, pageSize);
 
         // Assert
@@ -126,18 +121,13 @@ public class DataSourceManagerTest {
     void getDataSources_throwException_invalidUserId() {
         String invalidUserId = "notANumber";
 
-        /* Since the parsing fails immediately, we don't need to mock the repository */
-        NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
-            dataSourceManager.getDataSources(invalidUserId, 0, 10);
-        });
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> dataSourceManager.getDataSources(invalidUserId, 0, 10));
 
-        // Verify the exception message
         assertThat(thrown.getMessage()).contains("Invalid user ID: " + invalidUserId);
 
-        // FIX: Verify that the repository was never called with ANY arguments
         verify(dataSourceRepo, never()).findAllByUserId(
-                any(Integer.class), // Use an Argument Matcher for the userId (since it should never be called)
-                any(PageRequest.class) // Use an Argument Matcher for the PageRequest
+                any(Integer.class),
+                any(PageRequest.class)
         );
     }
 
@@ -196,9 +186,7 @@ public class DataSourceManagerTest {
 
         when(dataTypeRepo.findById(nonExistentTypeId)).thenReturn(Optional.empty());
 
-        NotFoundException thrown = assertThrows(NotFoundException.class, () -> {
-            dataSourceManager.createDataSource(userId, request);
-        });
+        NotFoundException thrown = assertThrows(NotFoundException.class, () -> dataSourceManager.createDataSource(userId, request));
 
         assertThat(thrown.getMessage()).isEqualTo("Unknown datasource type");
 
@@ -239,13 +227,10 @@ public class DataSourceManagerTest {
 
         when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));
 
-        // Since the parsing fails immediately, we don't need to mock the repository
         NotFoundException thrown = assertThrows(NotFoundException.class, () -> dataSourceManager.deleteDataSource(invalidUserId, dataSourceId));
 
-        // Verify the exception message
-        assertThat(thrown.getMessage()).contains("Invalid user ID: {}", invalidUserId);
+        assertThat(thrown.getMessage()).contains("Invalid user ID:").contains(invalidUserId);
 
-        // Verify that the repository was never called
         verify(dataSourceRepo, never()).delete(any(DataSource.class));
     }
 
@@ -261,19 +246,12 @@ public class DataSourceManagerTest {
                 .userId((int)actualDataSourceOwnerId)
                 .build();
 
-        // Arrange: Mock the findById to return a DataSource owned by a different user
         when(dataSourceRepo.findById(dataSourceId)).thenReturn(Optional.of(mockEntity));
 
-        // Act & Assert: Expect ForbiddenException
-        ForbiddenException thrown = assertThrows(ForbiddenException.class, () -> {
-            // Pass the requesting user ID '10'
-            dataSourceManager.deleteDataSource(requestedUserId, dataSourceId);
-        });
+        ForbiddenException thrown = assertThrows(ForbiddenException.class, () -> dataSourceManager.deleteDataSource(requestedUserId, dataSourceId));
 
-        // Verify the exception message
         assertThat(thrown.getMessage()).isEqualTo("User can delete only own datasource!");
 
-        // Verify findById was called, but delete was NOT called
         verify(dataSourceRepo).findById(dataSourceId);
         verify(dataSourceRepo, never()).delete(any(DataSource.class));
     }

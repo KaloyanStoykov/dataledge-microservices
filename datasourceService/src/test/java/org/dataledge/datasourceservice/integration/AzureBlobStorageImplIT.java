@@ -141,59 +141,42 @@ class AzureBlobStorageImplIT {
 
     @Test
     void listFiles_ShouldReturnOnlyFiles_AndIgnoreSubfolders_Integration() {
-        // 1. ARRANGE
-        // Create a unique folder name so this test doesn't clash with others
         String folderName = "user-23";
-        // We expect the service to look for "folderName/"
-        // Let's seed the container with 3 items:
         // 1. A standard file in the folder (Should be returned)
         String file1 = folderName + "/data.csv";
         // 2. Another standard file (Should be returned)
         String file2 = folderName + "/image.png";
         // 3. A file inside a subfolder (Should NOT be returned directly,
-        //    and the "subfolder/" prefix should be filtered out by your code)
         String nestedFile = folderName + "/subfolder/hidden.txt";
 
-        // Helper to upload content quickly using the Raw Client
         uploadString(file1);
         uploadString(file2);
         uploadString(nestedFile);
 
 
-        // 2. ACT
         List<String> results = azureBlobStorageImpl.listFiles("user-23");
 
-        // 3. ASSERT
-        // We expect exactly 2 items.
-        // The nested file is hidden because of hierarchy.
-        // The "subfolder/" entry is hidden because your code filters (!isPrefix).
         assertThat(results).isNotNull();
         assertThat(results.size()).isEqualTo(2);
 
-        // AssertJ helper to check contents regardless of order
         assertThat(results).containsExactlyInAnyOrder(file1, file2);
     }
 
     @Test
     void listFiles_ShouldReturnEmptyList_WhenFolderIsNew() {
-        // 2. ACT
         List<String> results = azureBlobStorageImpl.listFiles("user-1");
 
-        // 3. ASSERT
         assertThat(results).isNotNull();
         assertThat(results.size()).isEqualTo(0);
     }
 
     @Test
     void listFiles_ShouldThrowException_WhenContainerMissing_Integration() {
-        // 1. ARRANGE
-        // We purposefully "break" the environment by deleting the container
+        // break on purpose
         realContainerClient.delete();
 
         try {
 
-            // 2. ACT & ASSERT
-            // Azure SDK throws BlobStorageException (404) -> Your code wraps it in BlobStorageOperationException
             assertThrows(BlobStorageOperationException.class, () -> azureBlobStorageImpl.listFiles("user-1"));
 
         } finally {

@@ -8,7 +8,6 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.DeleteSnapshotsOptionType;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.dataledge.datasourceservice.config.exceptions.BlobStorageOperationException;
 import org.dataledge.datasourceservice.dto.Storage;
 import org.dataledge.datasourceservice.manager.IAzureBlobStorage;
@@ -43,12 +42,10 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
         String relativePath = storage.getUserId() + "/" + storage.getFileName();
 
         // 2. Get the blob client reference
-        // (You'll need to inject or obtain the BlobContainerClient instance)
         BlobClient blobClient = blobContainerClient.getBlobClient(relativePath);
 
         long fileSize = storage.getContentLength(); // Assumes DTO is updated
 
-        // 4. Upload the stream
         try (InputStream dataStream = storage.getFileData()) {
 
             blobClient.upload(dataStream, fileSize);
@@ -117,7 +114,8 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
             // Note: Batch operations usually have a limit (e.g., 256 per batch).
             blobBatchClient.deleteBlobs(validBlobs, DeleteSnapshotsOptionType.INCLUDE).forEach(response -> {
                 if (response.getStatusCode() != 202) {
-                    log.error("Failed to delete blob via batch");
+                    log.error("Failed to delete blob via batch. Blob URL: {}. Expected status 202 but got {}: {}",
+                            response.getRequest().getUrl(), response.getStatusCode(), response.getValue());
                 }
             });
             log.info("Batch deletion request completed for {} files.", validBlobs.size());
@@ -128,21 +126,5 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
     }
 
 
-    /**
-     * Generates the full blob path (directory/filename).
-     * Throws a custom exception for invalid input.
-     */
-    private String getPath(Storage storage) {
-        if(StringUtils.isBlank(storage.getFileName())){
-            throw new BlobStorageOperationException("Filename must be provided for the operation.");
-        }
 
-        if(StringUtils.isNotBlank(storage.getFileName())){
-            // Ensure single separator and trim leading/trailing slashes from path for safety
-            String path = StringUtils.strip(storage.getFileName(), "/");
-            return path + "/" + storage.getFileName();
-        }
-
-        return storage.getFileName(); // No directory path, just the file name
-    }
 }
