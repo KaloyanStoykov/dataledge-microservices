@@ -104,7 +104,6 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
         }
     }
 
-// --- Protected Helper Methods (Overridable in Tests) ---
 
     public InetAddress resolveHost(String host) throws UnknownHostException {
         return InetAddress.getByName(host);
