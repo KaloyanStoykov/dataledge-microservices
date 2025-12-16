@@ -6,23 +6,25 @@ pipeline {
 
     stages {
         stage('Build') {
-            steps {
-                dir('datasourceService'){
-                    // Clean, Compile, and Package the service
-                    sh './mvnw -B -DskipTests clean package'
-                }
-            }
+           steps {
+               dir('datasourceService'){
+                   // Clean, Compile, and Package the service
+                   sh './mvnw -B verify'
+               }
+           }
         }
 
         stage('SonarCloud analysis'){
             steps {
                 withSonarQubeEnv(credentialsId: '7e584476-a3ff-43e1-b2b8-d9ab1436a78f', installationName: 'SonarQube Cloud'){
-                    sh '''
-                        mvn clean verify sonar:sonar \
-                          -Dsonar.projectKey=dataledge-microservices \
-                          -Dsonar.organization=dataledge-service \
-                          -Dsonar.host.url=https://sonarcloud.io
-                    '''
+                    dir('datasourceService') {
+                        sh '''
+                            ./mvnw sonar:sonar \
+                              -Dsonar.projectKey=dataledge-microservices \
+                              -Dsonar.organization=dataledge-service \
+                              -Dsonar.host.url=https://sonarcloud.io
+                        '''
+                    }
                 }
             }
         }
