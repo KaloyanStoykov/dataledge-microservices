@@ -1,11 +1,16 @@
 package org.dataledge.datasourceservice.manager.impl;
 
+import jakarta.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.dataledge.datasourceservice.config.exceptions.BlobStorageOperationException;
 import org.dataledge.datasourceservice.config.exceptions.InvalidUserException;
+import org.dataledge.datasourceservice.data.datasources.DataSource;
+import org.dataledge.datasourceservice.data.datasources.DataSourceRepo;
 import org.dataledge.datasourceservice.dto.Storage;
+import org.dataledge.datasourceservice.dto.blobMetadataDTO.CreateBlobMetadataRequest;
 import org.dataledge.datasourceservice.manager.IAzureBlobRequestManager;
 import org.dataledge.datasourceservice.manager.IAzureBlobStorage;
+import org.dataledge.datasourceservice.manager.IBlobMetadataManager;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 @Service
@@ -21,14 +27,15 @@ import java.util.regex.Pattern;
 public class AzureBlobRequestManager implements IAzureBlobRequestManager {
 
     private final IAzureBlobStorage azureBlobStorage;
+    private final IBlobMetadataManager blobMetadataManager;
 
-
-    public AzureBlobRequestManager(IAzureBlobStorage azureBlobStorage) {
+    public AzureBlobRequestManager(IAzureBlobStorage azureBlobStorage, IBlobMetadataManager blobMetadataManager) {
         this.azureBlobStorage = azureBlobStorage;
+        this.blobMetadataManager = blobMetadataManager;
     }
 
     @Override
-    public String saveAPIContentToBlob(String apiUrl, String blobFileName, String userId) {
+    public String saveAPIContentToBlob(String apiUrl, String blobFileName, String userId, Long datasourceId) {
         String sanitizedUserId = sanitizeUserId(userId);
 
         // 1. Check if file exists (Move this UP to save network bandwidth)
@@ -45,9 +52,11 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
             throw new BlobStorageOperationException("API returned no content.");
         }
 
+
         // 3. Save to Blob Storage
         try (InputStream dataStream = new ByteArrayInputStream(contentBytes)) {
             Storage writeStorage = new Storage(dataStream, sanitizedUserId, blobFileName, (long) contentBytes.length);
+            blobMetadataManager.createBlobMetadata(sanitizedUserId, new CreateBlobMetadataRequest(blobFileName, datasourceId));
             azureBlobStorage.write(writeStorage);
             return "API content successfully saved!";
         } catch (IOException e) {

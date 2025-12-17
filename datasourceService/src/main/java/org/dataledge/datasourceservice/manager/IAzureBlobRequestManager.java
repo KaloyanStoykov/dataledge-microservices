@@ -16,7 +16,7 @@ public interface IAzureBlobRequestManager {
      * @throws BlobStorageOperationException if invalid url or userId is supplied or Azure operation failed.
      * @return String message of success
      */
-    String saveAPIContentToBlob(String apiUrl, String blobFileName, String userId) throws BlobStorageOperationException;
+    String saveAPIContentToBlob(String apiUrl, String blobFileName, String userId, Long datasourceId) throws BlobStorageOperationException;
 
     /**
      * Writes user supplied file to Azure Blob Storage
