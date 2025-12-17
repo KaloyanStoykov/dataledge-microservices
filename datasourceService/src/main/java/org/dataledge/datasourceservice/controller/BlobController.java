@@ -35,9 +35,10 @@ public class BlobController {
     public ResponseEntity<String> saveApiContentToBlob(
             @RequestParam("apiUrl") String apiUrl,
             @RequestParam("blobFileName") String blobFileName,
+            @RequestParam("source_id") Long sourceId,
             @RequestHeader(DataLedgeUtil.USER_ID_HEADER) String userId) {
 
-        String response = azureBlobRequestManager.saveAPIContentToBlob(apiUrl, blobFileName, userId);
+        String response = azureBlobRequestManager.saveAPIContentToBlob(apiUrl, blobFileName, userId, sourceId);
         return ResponseEntity.ok(response);
     }
 
