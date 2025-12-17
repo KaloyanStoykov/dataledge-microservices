@@ -5,6 +5,7 @@ import org.dataledge.datasourceservice.config.exceptions.InvalidUserException;
 import org.dataledge.datasourceservice.dto.Storage;
 import org.dataledge.datasourceservice.manager.IAzureBlobStorage;
 import org.dataledge.datasourceservice.manager.impl.AzureBlobRequestManager;
+import org.dataledge.datasourceservice.manager.impl.BlobMetadataManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,19 +31,15 @@ class AzureBlobRequestManagerTest {
 
     @Mock
     private IAzureBlobStorage azureBlobStorage;
+    @Mock
+    private BlobMetadataManager blobMetadataManager;
 
     @Mock
     private MultipartFile mockFile;
 
-    // @Spy wraps the real instance created by @InjectMocks.
-    // This allows us to stub specific methods (like fetchSecurely) while running the rest of the real code.
     @Spy
     @InjectMocks
     private AzureBlobRequestManager azureBlobRequestManager;
-
-    // -------------------------------------------------------------------
-    // Tests for saveAPIContentToBlob (High-level orchestration)
-    // -------------------------------------------------------------------
 
     @Test
     void saveAPIContentToBlob_ShouldSaveSuccessfully_WhenApiReturnsDataAndFileIsNew() throws IOException {
@@ -59,7 +56,7 @@ class AzureBlobRequestManagerTest {
         when(azureBlobStorage.write(any(Storage.class))).thenReturn("https://azure.com/blob/url");
 
         // 3. Act
-        String result = azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId);
+        String result = azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L);
 
         // 4. Assert
         assertEquals("API content successfully saved!", result);
@@ -88,7 +85,7 @@ class AzureBlobRequestManagerTest {
                 .when(azureBlobRequestManager).fetchSecurely(anyString());
 
         BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class,
-                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId));
+                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L));
 
         assertThat(ex.getMessage()).contains("Failed to call external API");
         verify(azureBlobStorage, never()).write(any());
@@ -106,7 +103,7 @@ class AzureBlobRequestManagerTest {
         doReturn(new byte[0]).when(azureBlobRequestManager).fetchSecurely(anyString());
 
         BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class,
-                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId));
+                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L));
 
         assertThat(ex.getMessage()).contains("API returned no content");
         verify(azureBlobStorage, never()).write(any());
@@ -122,7 +119,7 @@ class AzureBlobRequestManagerTest {
         when(azureBlobStorage.exists(anyString())).thenReturn(true);
 
         BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class,
-                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId));
+                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L));
 
         assertThat(ex.getMessage()).contains("File already exists");
         verify(azureBlobStorage, never()).write(any());

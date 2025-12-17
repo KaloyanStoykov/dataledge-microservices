@@ -70,6 +70,8 @@ public class AuthController {
                                                           HttpServletResponse response,
                                                           @RequestHeader(DataLedgeUtil.USER_ID_HEADER)  String userId) {
 
+
+        authService.deletePersonalAccount(id, Integer.valueOf(userId));
         ResponseCookie cookie = ResponseCookie.from("accessToken", "") // Празно
                 .httpOnly(true)
                 .secure(false)
@@ -79,8 +81,6 @@ public class AuthController {
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-        authService.deletePersonalAccount(id, Integer.valueOf(userId));
-
 
 
         return ResponseEntity.noContent().build();
