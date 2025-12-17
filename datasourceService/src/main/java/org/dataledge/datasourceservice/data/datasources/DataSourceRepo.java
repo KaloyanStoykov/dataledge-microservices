@@ -17,6 +17,6 @@ public interface DataSourceRepo extends PagingAndSortingRepository<DataSource, I
     @Transactional // Ensures the query runs in a transaction even if called elsewhere
     @Query("DELETE FROM DataSource d WHERE d.userId = :userId")
     void deleteAllByUserId(int userId);
-    Optional<DataSource> getDataSourceById(Long id);
+    Optional<DataSource> findByIdAndUserId(Long id, int userId);
     Page<DataSource> findAllByUserId(int userId, Pageable pageable);
 }

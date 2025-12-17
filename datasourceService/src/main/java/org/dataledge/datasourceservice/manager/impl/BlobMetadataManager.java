@@ -13,6 +13,8 @@ import org.dataledge.datasourceservice.dto.blobMetadataDTO.GetPagedBlobMetadataR
 import org.dataledge.datasourceservice.manager.IBlobMetadataManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -50,34 +52,39 @@ public class BlobMetadataManager implements IBlobMetadataManager {
 
     @Override
     public GetPagedBlobMetadataResponse getBlobsForDatasources(String userId, int datasourceId, int pageNumber, int pageSize) {
-        String sanitizedUserId = sanitizeUserId(userId);
+        int parsedUserId = Integer.parseInt(sanitizeUserId(userId));
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
-        Page<BlobMetadata> pageResult = blobMetadataRepo.findAllByUserId(Integer.parseInt(sanitizedUserId), PageRequest.of(pageNumber, pageSize));
-
-        if (pageResult.isEmpty()){
-            throw new NotFoundException("No files found for this datasource");
-        }
+        // Calling the custom query method
+        Page<BlobMetadata> pageResult = blobMetadataRepo.findByUserAndDataSource(
+                parsedUserId,
+                datasourceId,
+                pageable
+        );
 
         List<BlobMetadataResponse> items = pageResult.getContent()
                 .stream()
-                .map(x -> {
-                    return new BlobMetadataResponse(x.getId(), x.getFileName(), x.getCreated());
-                })
+                .map(x -> new BlobMetadataResponse(x.getId(), x.getFileName(), x.getCreated()))
                 .toList();
 
-        return new GetPagedBlobMetadataResponse(items, pageResult.getTotalElements(), pageNumber, pageSize);
+        return new GetPagedBlobMetadataResponse(
+                items,
+                pageResult.getTotalElements(),
+                pageResult.getNumber(),
+                pageResult.getSize()
+        );
     }
 
     @Override
-    public String createBlobMetadata(String userId, CreateBlobMetadataRequest req) {
-        String sanitizedUserId = sanitizeUserId(userId);
+    public String createBlobMetadata(int userId, String fileName, DataSource datasource) {
+        BlobMetadata metadata = new BlobMetadata(
+                null,
+                fileName,
+                Instant.now(),
+                userId,
+                datasource
+        );
 
-        Optional<DataSource> datasource = dataSourceRepo.getDataSourceById(req.getDatasourceId());
-        if(datasource.isEmpty()){
-            throw new NotFoundException("Datasource not found!");
-        }
-
-        BlobMetadata metadata = new BlobMetadata(null, req.getFileName(), Instant.now(), Integer.parseInt(sanitizedUserId), datasource.get());
         blobMetadataRepo.save(metadata);
         return "Blob reference set successfully";
     }

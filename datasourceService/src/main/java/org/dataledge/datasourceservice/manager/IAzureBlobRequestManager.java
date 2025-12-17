@@ -26,7 +26,7 @@ public interface IAzureBlobRequestManager {
      * @return String message for successful operation
      * @throws BlobStorageOperationException on invalid requests
      */
-    String writeFileToBlob(MultipartFile file, String requestedFileName, String userId) throws  BlobStorageOperationException;
+    String writeFileToBlob(MultipartFile file, String requestedFileName, String userId, Long datasourceId) throws  BlobStorageOperationException;
 
     /**
      * Handles userID checks for malicious or invalid entries that will be used for the virtual folder structure in Azure Blob Storage.
