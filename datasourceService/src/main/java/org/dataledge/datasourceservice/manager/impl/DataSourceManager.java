@@ -8,11 +8,14 @@ import org.dataledge.datasourceservice.data.DataType;
 import org.dataledge.datasourceservice.data.DataTypeRepo;
 import org.dataledge.datasourceservice.data.datasources.DataSource;
 import org.dataledge.datasourceservice.data.datasources.DataSourceRepo;
+import org.dataledge.datasourceservice.data.datasources.DataSourceSpecs;
 import org.dataledge.datasourceservice.dto.datasourcesDTO.*;
 import org.dataledge.datasourceservice.manager.IDataSourceMapper;
 import org.dataledge.datasourceservice.manager.IDataSourceManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -42,23 +45,20 @@ public class DataSourceManager implements IDataSourceManager {
      * @throws NotFoundException when no items were found from the repository
      */
     @Override
-    public GetDataSourcesResponse getDataSources(String userId, int pageNumber, int pageSize) {
+    public GetDataSourcesResponse getDataSources(String userId, int pageNumber, int pageSize, String searchTerm) {
+        int parsedUserId = Integer.parseInt(userId);
 
+        // Build the Specification
+        Specification<DataSource> spec = DataSourceSpecs.search(parsedUserId, searchTerm);
 
-        int parsedUserId;
-        try {
-            parsedUserId = Integer.parseInt(userId);
-        } catch (NumberFormatException e) {
-            throw new NotFoundException("Invalid user ID: " + userId);
-        }
-
-        Page<DataSource> pageResult = dataSourceRepo.findAllByUserId(
-                parsedUserId,
-                PageRequest.of(pageNumber, pageSize)
+        // Fetch the page
+        Page<DataSource> pageResult = dataSourceRepo.findAll(
+                spec,
+                PageRequest.of(pageNumber, pageSize, Sort.by("created").descending())
         );
 
-        if (pageResult.isEmpty()) {
-            // Change the exception message slightly to reflect the filter context
+        // Optional: Only throw 404 if the user has ZERO records total (no search applied)
+        if (pageResult.isEmpty() && (searchTerm == null || searchTerm.isBlank())) {
             throw new NotFoundException("No data sources found for this user");
         }
 

@@ -1,11 +1,13 @@
 package org.dataledge.datasourceservice.data.datasources;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import net.minidev.json.annotate.JsonIgnore;
 import org.dataledge.datasourceservice.data.DataType;
 import org.springframework.data.annotation.LastModifiedDate;
 
@@ -27,7 +29,7 @@ public class DataSource {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "type_id", nullable = false)
-    @JsonBackReference
+    @JsonIgnoreProperties("dataSources")
     private DataType type;
 
     private String description;

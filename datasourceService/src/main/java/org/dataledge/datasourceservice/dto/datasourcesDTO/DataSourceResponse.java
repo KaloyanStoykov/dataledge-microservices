@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.dataledge.datasourceservice.data.DataType;
+import org.dataledge.datasourceservice.dto.datatypesDTO.DataTypeResponse;
 
 import java.time.Instant;
 import java.util.Date;
@@ -14,7 +15,7 @@ import java.util.Date;
 public class DataSourceResponse {
     private Long id;
     private String name;
-    private DataType type;
+    private DataTypeResponse type;
     private String description;
     private String url;
     private Instant created;
