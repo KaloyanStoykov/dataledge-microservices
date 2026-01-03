@@ -102,26 +102,25 @@ public class AzureBlobStorageImpl implements IAzureBlobStorage {
     public void deleteFilesBatch(String userId, List<String> blobNamesToDelete) {
         String pathPrefix = userId + "/";
 
-        // Filter list for security first
-        List<String> validBlobs = blobNamesToDelete.stream()
-                .filter(name -> name.startsWith(pathPrefix))
-                .map(name -> blobContainerClient.getBlobClient(name).getBlobUrl()) // <--- THIS IS THE FIX
+        List<String> validBlobUrls = blobNamesToDelete.stream()
+                .map(name -> {
+                    String fullPath = name.startsWith(pathPrefix) ? name : pathPrefix + name;
+                    return blobContainerClient.getBlobClient(fullPath).getBlobUrl();
+                })
                 .toList();
 
-        if (validBlobs.isEmpty()) return;
+        if (validBlobUrls.isEmpty()) return;
 
         try {
-            // Note: Batch operations usually have a limit (e.g., 256 per batch).
-            blobBatchClient.deleteBlobs(validBlobs, DeleteSnapshotsOptionType.INCLUDE).forEach(response -> {
+            // Azure Batch requires the full Blob URLs
+            blobBatchClient.deleteBlobs(validBlobUrls, DeleteSnapshotsOptionType.INCLUDE).forEach(response -> {
                 if (response.getStatusCode() != 202) {
-                    log.error("Failed to delete blob via batch. Blob URL: {}. Expected status 202 but got {}: {}",
-                            response.getRequest().getUrl(), response.getStatusCode(), response.getValue());
+                    log.error("Azure rejected deletion for: {}. Status: {}",
+                            response.getRequest().getUrl(), response.getStatusCode());
                 }
             });
-            log.info("Batch deletion request completed for {} files.", validBlobs.size());
         } catch (Exception e) {
-            log.error("Batch delete failed", e);
-            throw new BlobStorageOperationException("Batch delete failed", e);
+            throw new BlobStorageOperationException("Cloud batch delete failed", e);
         }
     }
 

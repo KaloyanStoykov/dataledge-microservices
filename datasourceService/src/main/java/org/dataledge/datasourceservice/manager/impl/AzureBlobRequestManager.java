@@ -51,7 +51,7 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
         // 2. BLOB EXISTENCE: Check before downloading bytes
         String potentialBlobPath = parsedUserId + "/" + blobFileName;
         if (azureBlobStorage.exists(potentialBlobPath)) {
-            throw new BlobStorageOperationException("File already exists at path: " + potentialBlobPath);
+            throw new BlobStorageOperationException("File with name " + blobFileName + " already exists");
         }
 
         // 3. HEAVY WORK: Fetch API Data
@@ -144,6 +144,7 @@ public class AzureBlobRequestManager implements IAzureBlobRequestManager {
     public void deleteUserBlobs(String userId, List<String> blobNamesToDelete) throws BlobStorageOperationException {
         String sanitizedUserId = sanitizeUserId(userId);
 
+        blobMetadataManager.deleteMetadataBatch(Integer.parseInt(sanitizedUserId), blobNamesToDelete);
         azureBlobStorage.deleteFilesBatch(sanitizedUserId, blobNamesToDelete);
     }
 

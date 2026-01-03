@@ -6,7 +6,7 @@ import org.dataledge.datasourceservice.dto.datasourcesDTO.DeleteDataSourceRespon
 import org.dataledge.datasourceservice.dto.datasourcesDTO.GetDataSourcesResponse;
 
 public interface IDataSourceManager {
-    GetDataSourcesResponse getDataSources(String userId, int pageNumber, int pageSize);
+    GetDataSourcesResponse getDataSources(String userId, int pageNumber, int pageSize, String searchTerm);
     CreateDataSourceResponse createDataSource(String userId, CreateDataSourceRequest dataSourceRequest);
     DeleteDataSourceResponse deleteDataSource(String userId, int id);
 

@@ -1,6 +1,7 @@
 package org.dataledge.datasourceservice.controller;
 
 import org.dataledge.datasourceservice.dto.blobMetadataDTO.GetPagedBlobMetadataResponse;
+import org.dataledge.datasourceservice.dto.datasourcesDTO.DeleteDataSourcesRequest;
 import org.dataledge.datasourceservice.manager.IAzureBlobRequestManager;
 import org.dataledge.datasourceservice.manager.IBlobMetadataManager;
 import org.springframework.data.domain.Pageable;
@@ -57,6 +58,16 @@ public class BlobController {
             ) {
         var response = blobMetadataManager.getBlobsForDatasources(userId, datasourceId, pageable.getPageNumber(), pageable.getPageSize());
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/deleteBatch")
+    public ResponseEntity<String> deleteBlob(
+            @RequestBody DeleteDataSourcesRequest request,
+            @RequestHeader(DataLedgeUtil.USER_ID_HEADER) String userId
+
+    ) {
+        azureBlobRequestManager.deleteUserBlobs(userId, request.getBlobFileNames());
+        return ResponseEntity.ok("Successfully deleted files");
     }
 
 }

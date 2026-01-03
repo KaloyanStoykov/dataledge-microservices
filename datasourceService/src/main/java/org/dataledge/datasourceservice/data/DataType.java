@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import net.minidev.json.annotate.JsonIgnore;
 import org.dataledge.datasourceservice.data.datasources.DataSource;
 
 import java.util.List;
@@ -21,6 +22,6 @@ public class DataType {
     private String description;
 
     @OneToMany(mappedBy = "type", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonIgnore
     private List<DataSource> dataSources;
 }

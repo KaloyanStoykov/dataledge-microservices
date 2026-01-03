@@ -1,6 +1,7 @@
 package org.dataledge.datasourceservice.data.filesnaps;
 
 
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,4 +27,9 @@ public interface BlobMetadataRepo extends PagingAndSortingRepository<BlobMetadat
             @Param("dsId") long dsId,
             Pageable pageable
     );
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM BlobMetadata b WHERE b.userId = :userId AND b.fileName IN :blobNames")
+    void deleteByUserIdAndBlobNames(int userId, List<String> blobNames);
 }

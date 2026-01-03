@@ -1,4 +1,5 @@
 package org.dataledge.datasourceservice.manager.impl;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.dataledge.datasourceservice.config.exceptions.InvalidUserException;
@@ -88,4 +89,21 @@ public class BlobMetadataManager implements IBlobMetadataManager {
         blobMetadataRepo.save(metadata);
         return "Blob reference set successfully";
     }
+
+    @Override
+    @Transactional
+    public void deleteMetadataBatch(int userId, List<String> blobNames) {
+        if (blobNames == null || blobNames.isEmpty()) {
+            return;
+        }
+
+        try {
+            blobMetadataRepo.deleteByUserIdAndBlobNames(userId, blobNames);
+            log.info("Successfully deleted {} metadata records for user: {}", blobNames.size(), userId);
+        } catch (Exception e) {
+            log.error("Failed to delete metadata batch for user: {}", userId, e);
+            throw new RuntimeException("Could not sync metadata deletion", e);
+        }
+    }
+
 }

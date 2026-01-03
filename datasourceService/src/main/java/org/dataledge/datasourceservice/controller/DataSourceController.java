@@ -21,11 +21,12 @@ public class DataSourceController {
 
     @GetMapping()
     public ResponseEntity<GetDataSourcesResponse> getDataSource(
-            @RequestParam int pageNumber,
-            @RequestParam int pageSize,
+            @RequestParam(defaultValue = "0") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam(required = false) String searchTerm,
             @RequestHeader(DataLedgeUtil.USER_ID_HEADER) String userId
     ) {
-        GetDataSourcesResponse response = dataSourceManager.getDataSources(userId, pageNumber, pageSize);
+        GetDataSourcesResponse response = dataSourceManager.getDataSources(userId, pageNumber, pageSize, searchTerm);
 
         return ResponseEntity.ok(response);
     }
