@@ -1,6 +1,7 @@
 package org.dataledge.gateway.filter;
 
 import lombok.extern.slf4j.Slf4j;
+
 import org.dataledge.common.DataLedgeUtil;
 import org.dataledge.gateway.config.exceptions.UnauthorizedException;
 import org.dataledge.gateway.util.JwtUtil;
