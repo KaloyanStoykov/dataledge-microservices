@@ -31,6 +31,7 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway</artifactId>
+            <version>4.3.2</version>
         </dependency>
 
         <!-- Eureka Client -->
