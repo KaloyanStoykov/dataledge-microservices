@@ -48,6 +48,10 @@
                     <groupId>commons-configuration</groupId>
                     <artifactId>commons-configuration</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpclient</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
