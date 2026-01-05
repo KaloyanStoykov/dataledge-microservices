@@ -4,8 +4,7 @@ import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import org.testng.annotations.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
 //@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
 //        properties = {"httpbin=http://localhost:${wiremock.server.port}"})
