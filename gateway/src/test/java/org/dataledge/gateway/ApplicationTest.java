@@ -1,13 +1,11 @@
 package org.dataledge.gateway;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
-import org.testng.annotations.Test;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.web.reactive.server.WebTestClient;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
 //@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
 //        properties = {"httpbin=http://localhost:${wiremock.server.port}"})
