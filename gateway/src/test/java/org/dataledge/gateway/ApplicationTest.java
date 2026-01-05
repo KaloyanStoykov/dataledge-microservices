@@ -1,9 +1,8 @@
 package org.dataledge.gateway;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.springframework.boot.test.context.SpringBootTest;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import org.testng.annotations.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
