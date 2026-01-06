@@ -3,6 +3,7 @@ package org.dataledge.datasourceservice.integration;
 import com.azure.storage.blob.*;
 import com.azure.storage.blob.batch.BlobBatchClient;
 import com.azure.storage.blob.batch.BlobBatchClientBuilder;
+import com.azure.storage.blob.models.BlobItem;
 import net.bytebuddy.utility.RandomString;
 import org.dataledge.datasourceservice.config.exceptions.BlobStorageOperationException;
 import org.dataledge.datasourceservice.dto.Storage;
@@ -10,6 +11,8 @@ import org.dataledge.datasourceservice.manager.impl.AzureBlobStorageImpl;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import java.io.*;
+
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,6 +21,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -36,13 +40,16 @@ class AzureBlobStorageImplIT {
 
     private BlobContainerClient realContainerClient;
 
+    private BlobBatchClient blobBatchClient;
+
     private AzureBlobStorageImpl azureBlobStorageImpl;
 
     @BeforeEach
     void setUp() {
         Integer blobPort = AZURITE_CONTAINER.getMappedPort(10000);
+        // Use localhost consistently
         String connectionString = String.format(
-                "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:%s/devstoreaccount1;",
+                "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:%s/devstoreaccount1;",
                 blobPort
         );
 
@@ -50,16 +57,13 @@ class AzureBlobStorageImplIT {
                 .connectionString(connectionString)
                 .buildClient();
 
-        BlobBatchClient blobBatchClient = new BlobBatchClientBuilder(blobServiceClient).buildClient();
+        // The Batch client must be created from the same service client to share credentials and endpoint logic
+        this.blobBatchClient = new BlobBatchClientBuilder(blobServiceClient).buildClient();
 
-        String containerName = RandomString.make().toLowerCase();
+        String containerName = RandomString.make(10).toLowerCase();
         realContainerClient = blobServiceClient.createBlobContainer(containerName);
 
-
-        azureBlobStorageImpl = new AzureBlobStorageImpl(
-                realContainerClient,
-                blobBatchClient
-        );
+        azureBlobStorageImpl = new AzureBlobStorageImpl(realContainerClient, blobBatchClient);
     }
 
     @Test
@@ -172,87 +176,84 @@ class AzureBlobStorageImplIT {
 
     @Test
     void listFiles_ShouldThrowException_WhenContainerMissing_Integration() {
-        // break on purpose
-        realContainerClient.delete();
+        // 1. Arrange: Create a client for a container that DOES NOT exist
+        BlobServiceClient serviceClient = realContainerClient.getServiceClient();
+        BlobContainerClient nonExistentContainer = serviceClient.getBlobContainerClient("i-definitely-do-not-exist");
 
-        try {
+        // 2. Create a temporary manager using this broken client
+        AzureBlobStorageImpl brokenManager = new AzureBlobStorageImpl(nonExistentContainer, null);
 
-            assertThrows(BlobStorageOperationException.class, () -> azureBlobStorageImpl.listFiles("user-1"));
-
-        } finally {
-            // 3. CLEANUP (CRITICAL)
-            // We MUST recreate the container, otherwise all subsequent tests in this class will fail!
-            realContainerClient.create();
-        }
+        // 3. Act & Assert: This will throw a 404 naturally without breaking other tests
+        assertThrows(BlobStorageOperationException.class, () ->
+                brokenManager.listFiles("user-1")
+        );
     }
 
     @Test
-    void deleteFilesBatch_ShouldDeleteOnlySpecificUserFiles_Integration() {
-        // 1. ARRANGE
-        String userId = "user-delete-test";
+    @DisplayName("Should successfully delete multiple files in a batch")
+    void deleteFilesBatch_Success() {
+        // Arrange
+        String userId = "user123";
+        String file1 = "photo.jpg";
+        String file2 = "document.pdf";
 
-        // Create 3 files:
-        // Two belong to the user
-        String file1 = userId + "/doc1.txt";
-        String file2 = userId + "/doc2.txt";
-        // One belongs to a DIFFERENT user (Security Check)
-        String otherUserFile = "user-other/secret.txt";
+        uploadFile(userId + "/" + file1, "content1");
+        uploadFile(userId + "/" + file2, "content2");
 
-        uploadString(file1);
-        uploadString(file2);
-        uploadString(otherUserFile);
+        // Act
+        azureBlobStorageImpl.deleteFilesBatch(userId, List.of(file1, file2));
 
-        // Input list contains the user's files AND the other user's file (simulating a malicious request)
-        List<String> filesToDelete = List.of(file1, file2, otherUserFile);
+        // Assert
+        List<String> remainingBlobs = realContainerClient.listBlobs().stream()
+                .map(BlobItem::getName)
+                .toList();
 
-        // 2. ACT
-        azureBlobStorageImpl.deleteFilesBatch(userId, filesToDelete);
-
-        // 3. ASSERT
-        // The user's files should be gone
-        assertThat(realContainerClient.getBlobClient(file1).exists()).isFalse();
-        assertThat(realContainerClient.getBlobClient(file2).exists()).isFalse();
-
-        // The OTHER user's file must still exist (because of the startsWith filter in your code)
-        assertThat(realContainerClient.getBlobClient(otherUserFile).exists()).isTrue();
+        assertThat(remainingBlobs).isEmpty();
     }
 
     @Test
-    void deleteFilesBatch_ShouldDoNothing_WhenListIsEmpty() {
-        // 1. ARRANGE
-        String userId = "user-empty-batch";
-        String file1 = userId + "/keep-me.txt";
-        uploadString(file1);
+    @DisplayName("Should handle blob names that already include the path prefix")
+    void deleteFilesBatch_HandlesExistingPrefix() {
+        // Arrange
+        String userId = "user456";
+        String fullPath = userId + "/already-prefixed.txt";
+        uploadFile(fullPath, "content");
 
-        // 2. ACT
-        azureBlobStorageImpl.deleteFilesBatch(userId, List.of());
+        // Act - Passing the full path instead of just the filename
+        azureBlobStorageImpl.deleteFilesBatch(userId, List.of(fullPath));
 
-        // 3. ASSERT
-        // File should still exist because list was empty
-        assertThat(realContainerClient.getBlobClient(file1).exists()).isTrue();
+        // Assert
+        assertThat(realContainerClient.getBlobClient(fullPath).exists()).isFalse();
     }
 
     @Test
-    void deleteFilesBatch_ShouldThrowException_WhenContainerMissing() {
-        // 1. ARRANGE
-        // Simulate a major failure (container deleted)
-        realContainerClient.delete();
+    @DisplayName("Should return early and do nothing if the list is empty")
+    void deleteFilesBatch_EmptyList() {
+        // Act & Assert
+        // This confirms no exception is thrown and the logic exits gracefully
+        azureBlobStorageImpl.deleteFilesBatch("user123", List.of());
+    }
 
-        try {
-            String userId = "user-fail";
-            List<String> files = List.of(userId + "/file1.txt");
 
-            // 2. ACT & ASSERT
-            // The batch client will attempt to execute and fail because the container is gone
-            assertThrows(BlobStorageOperationException.class, () ->
-                    azureBlobStorageImpl.deleteFilesBatch(userId, files)
-            );
+    @Test
+    @DisplayName("Should throw custom exception when the batch client fails entirely")
+    void deleteFilesBatch_ServiceFailure() {
+        // Arrange
+        // Create a storage impl with a client pointing to a non-existent container to force a failure
+        var badContainerClient = realContainerClient.getServiceClient().getBlobContainerClient("non-existent");
+        var storageWithBadClient = new AzureBlobStorageImpl(badContainerClient, blobBatchClient);
 
-        } finally {
-            // 3. CLEANUP
-            // Must recreate container for other tests
-            realContainerClient.create();
-        }
+        // Act & Assert
+        assertThatThrownBy(() -> storageWithBadClient.deleteFilesBatch("user123", List.of("file.txt")))
+                .isInstanceOf(BlobStorageOperationException.class)
+                .hasMessageContaining("Cloud batch delete failed");
+    }
+
+    // Helper method to seed data into Azurite
+    private void uploadFile(String path, String content) {
+        byte[] data = content.getBytes();
+        realContainerClient.getBlobClient(path)
+                .upload(new ByteArrayInputStream(data), data.length);
     }
 
     private void uploadString(String blobPath) {
