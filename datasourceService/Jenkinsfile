@@ -1,7 +1,7 @@
 pipeline {
     agent { label 'docker-build' }
     environment {
-        APP_NAME = "kiko12122/dataledge-microservices"
+        APP_NAME = "kiko12122/dataledge-datasource-service"
     }
 
     stages {
@@ -40,19 +40,20 @@ pipeline {
         
         stage('Build & Push Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dataledge-microservices', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    dir('datasourceService') {
-                        // 1. Build the Docker image
-                        sh "docker build -t $APP_NAME:$BUILD_NUMBER ."
+                script {
+                    def IMAGE_VERSION = "1.3.${env.BUILD_NUMBER}"
 
-                        // 2. Login to Docker Hub
-                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
-                        
-                        // 3. Push the image
-                        sh "docker push $APP_NAME:$BUILD_NUMBER"
+                    withCredentials([usernamePassword(credentialsId: 'dataledge-microservices', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        dir('datasourceService') {
+                            sh "docker build -t $APP_NAME:$IMAGE_VERSION -t $APP_NAME:latest ."
 
-                        // 4. (Optional) Logout for security
-                        sh "docker logout"
+                            sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+
+                            sh "docker push $APP_NAME:$IMAGE_VERSION"
+                            sh "docker push $APP_NAME:latest"
+
+                            sh "docker logout"
+                        }
                     }
                 }
             }
