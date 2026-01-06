@@ -33,7 +33,7 @@ pipeline {
             steps {
                 dir('identityService'){
                     // Run specific tests
-                    sh './mvnw -Dtest=*ManagerTest test'
+                    sh './mvnw -Dtest=*ServiceTest test'
                 }
             }
         }
