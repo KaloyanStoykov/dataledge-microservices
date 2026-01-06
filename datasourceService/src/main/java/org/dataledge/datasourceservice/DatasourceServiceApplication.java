@@ -14,7 +14,7 @@ import com.azure.storage.common.*;
 public class DatasourceServiceApplication {
 
     public static void main(String[] args) {
-        Dotenv dotenv = Dotenv.load();
+        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
 
         // Server Config
         System.setProperty("SERVER_PORT", dotenv.get("SERVER_PORT"));
