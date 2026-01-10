@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-datasource
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-datasource
+  template:
+    metadata:
+      labels:
+        app: mysql-datasource
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:latest
+          env:
+            - name: MYSQL_DATABASE
+              value: dataledge      # Matches .env
+            - name: MYSQL_USER
+              value: myuser         # Required to create the user
+            - name: MYSQL_PASSWORD
+              value: secret         # Matches .env
+            - name: MYSQL_ROOT_PASSWORD
+              value: verysecret
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: datasource-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: datasource-storage
+          persistentVolumeClaim:
+            claimName: datasource-pvc

@@ -1,0 +1,16 @@
+prometheus:
+  url: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local
+  port: 9090
+
+rules:
+  default: false
+  custom:
+    - seriesQuery: 'http_server_requests_seconds_count{pod!="",namespace!=""}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        matches: "^http_server_requests_seconds_count"
+        as: "http_server_requests_per_second"
+      metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[1m])) by (<<.GroupBy>>)'

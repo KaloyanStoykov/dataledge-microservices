@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-identity
+  labels:
+    app: mysql-identity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-identity
+  template:
+    metadata:
+      labels:
+        app: mysql-identity
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:latest
+          env:
+            - name: MYSQL_DATABASE
+              value: identity
+            - name: MYSQL_PASSWORD
+              value: secret
+            - name: MYSQL_ROOT_PASSWORD
+              value: verysecret
+            - name: MYSQL_USER
+              value: myuser
+          # MOVED: ports must be inside the container definition
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: identity-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-identity
+spec:
+  ports:
+    - port: 3306        
+      targetPort: 3306
+  selector:
+    app: mysql-identity

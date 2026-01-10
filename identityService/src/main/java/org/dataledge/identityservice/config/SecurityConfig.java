@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         // Allow unauthenticated access to the /auth/ endpoint
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/error").permitAll()
                         // Require authentication for all other requests
                         .anyRequest().authenticated()
                 )
