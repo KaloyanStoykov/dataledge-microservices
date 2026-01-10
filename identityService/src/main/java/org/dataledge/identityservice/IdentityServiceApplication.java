@@ -11,7 +11,7 @@ public class IdentityServiceApplication {
         // --- Custom .env Loading ---
 
         // Load the .env file from the current working directory
-        Dotenv dotenv = Dotenv.load();
+        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
 
         // Set the properties as System Properties so Spring can read them
         System.setProperty("DB_URL", dotenv.get("DB_URL"));

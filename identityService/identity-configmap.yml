@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: identity-config
+data:
+  # Database - Connects to the 'mysql-identity' service we created earlier
+  DB_URL: "jdbc:mysql://mysql-identity:3306/identity?createDatabaseIfNotExist=true"
+  DB_USERNAME: "myuser"
+  DB_PASSWORD: "secret"
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+  
+  # RabbitMQ - Connects to the shared 'rabbitmq' service
+  RABBITMQ_HOST: "rabbitmq"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: "myuser"
+  RABBITMQ_PASS: "secret"
+  
+  # JWT & Eureka
+  JWT_SECRET: "0008c5aa70752d59c85bf476aaf93607aae0e5ec8eb09caa06333d1459064f16ca60c5f20e335b8c4cc0acb81e70d5f3"
+  JWT_EXPIRATION_MS: "3600000"
+  EUREKA_SERVER_URL: "http://eureka-service:8761/eureka/"

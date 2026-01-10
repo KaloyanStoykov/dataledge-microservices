@@ -1,0 +1,62 @@
+pipeline {
+    agent { label 'docker-build' }
+    environment {
+        APP_NAME = "kiko12122/dataledge-identity-service"
+    }
+
+    stages {
+        stage('Build') {
+           steps {
+               dir('identityService'){
+                   // Clean, Compile, and Package the service
+                   sh './mvnw -B verify'
+               }
+           }
+        }
+
+        stage('SonarCloud analysis'){
+            steps {
+                withSonarQubeEnv(credentialsId: '7e584476-a3ff-43e1-b2b8-d9ab1436a78f', installationName: 'SonarQube Cloud'){
+                    dir('identityService') {
+                        sh '''
+                            ./mvnw sonar:sonar \
+                              -Dsonar.projectKey=dataledge-microservices \
+                              -Dsonar.organization=dataledge-service \
+                              -Dsonar.host.url=https://sonarcloud.io
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir('identityService'){
+                    // Run specific tests
+                    sh './mvnw -Dtest=*ServiceTest test'
+                }
+            }
+        }
+
+        stage('Build & Push Image') {
+            steps {
+                script {
+                    def IMAGE_VERSION = "1.0.${env.BUILD_NUMBER}"
+
+                    withCredentials([usernamePassword(credentialsId: 'dataledge-microservices', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        dir('identityService') {
+                            sh "docker build -t $APP_NAME:$IMAGE_VERSION -t $APP_NAME:latest ."
+
+                            sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+
+                            sh "docker push $APP_NAME:$IMAGE_VERSION"
+                            sh "docker push $APP_NAME:latest"
+
+                            sh "docker logout"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

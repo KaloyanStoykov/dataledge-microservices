@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-service
+  labels:
+    app: identity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identity
+  template:
+    metadata:
+      labels:
+        app: identity
+    spec:
+      containers:
+        - name: identity-app
+          image: kiko12122/dataledge-identity-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8087
+          # Injecting everything from the ConfigMap as environment variables
+          envFrom:
+            - configMapRef:
+                name: identity-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      # Volumes removed because envFrom is cleaner for Spring Boot
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-service
+spec:
+  selector:
+    app: identity
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8087
+  type: ClusterIP

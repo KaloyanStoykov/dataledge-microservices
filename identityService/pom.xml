@@ -27,6 +27,15 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <sonar.coverage.exclusions>
+            **/config/**/*.java,
+            **/controller/*.java,
+            **/dto/**/*.java,
+            **/entity/**/*.java,
+            **/repository/**/*.java,
+            **/service/**/*.java,
+            **/IdentityServiceApplication.java
+        </sonar.coverage.exclusions>
     </properties>
     <dependencies>
         <dependency>
@@ -86,6 +95,15 @@
             <groupId>io.github.cdimascio</groupId>
             <artifactId>dotenv-java</artifactId>
             <version>3.2.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -150,6 +168,11 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>4.0.0.4121</version>
             </plugin>
         </plugins>
     </build>

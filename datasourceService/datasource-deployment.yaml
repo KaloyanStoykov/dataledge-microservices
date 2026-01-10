@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datasource-service
+  labels:
+    app: datasource
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: datasource
+  template:
+    metadata:
+      labels:
+        app: datasource
+    spec:
+      containers:
+      - name: datasource-app
+        image: kiko12122/dataledge-datasource-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8082 
+        # Injecting everything from the ConfigMap as environment variables
+        envFrom:
+        - configMapRef:
+            name: datasource-config
+        resources:
+          requests:
+            cpu: "100m"    
+            memory: "256Mi"
+          limits:
+            cpu: "500m"    
+            memory: "512Mi"
+      # Volumes removed because envFrom is cleaner for Spring Boot
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: datasource-service
+spec:
+  selector:
+    app: datasource
+  ports:
+    - protocol: TCP
+      port: 8082
+      targetPort: 8082 
+  type: ClusterIP

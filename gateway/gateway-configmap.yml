@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+data:
+  JWT_SECRET: "0008c5aa70752d59c85bf476aaf93607aae0e5ec8eb09caa06333d1459064f16ca60c5f20e335b8c4cc0acb81e70d5f3"
+  JWT_EXPIRATION_MS: "3600000"
+  application.yml: |
+    server:
+      port: 8080
+    spring:
+      application:
+        name: GATEWAY-SERVICE
+      cloud:
+        gateway:
+          server:
+            webflux:
+              globalcors:
+                cors-configurations:
+                  '[/**]':
+                    allowedOrigins: "http://localhost:5173"
+                    allowedMethods: [GET, POST, PUT, DELETE, OPTIONS]
+                    allowedHeaders: "*"
+                    allowCredentials: true
+              routes:
+                - id: datasource-service-main
+                  uri: lb://DATASOURCE-SERVICE
+                  predicates:
+                    - Path=/datasources/**
+                  filters:
+                    - AuthenticationFilter
+                - id: identity-service
+                  uri: lb://IDENTITY-SERVICE
+                  predicates:
+                    - Path=/auth/**
+                - id: datasource-service-types
+                  uri: lb://DATASOURCE-SERVICE  # Aligned now
+                  predicates:                   # Aligned now
+                    - Path=/datasource-types/**
+                  filters:                      # Aligned now
+                    - AuthenticationFilter
+      client:
+        service-url:
+          defaultZone: http://eureka-service:8761/eureka/
+    resilience4j:
+      circuitbreaker:
+        instances:
+          authCircuitBreaker:
+            slidingWindowSize: 5
+            failureRateThreshold: 50
+            waitDuration_in_open_state: 5000
