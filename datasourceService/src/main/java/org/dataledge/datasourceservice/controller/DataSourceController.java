@@ -1,11 +1,9 @@
 package org.dataledge.datasourceservice.controller;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.dataledge.common.DataLedgeUtil;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceRequest;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.CreateDataSourceResponse;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.DeleteDataSourceResponse;
-import org.dataledge.datasourceservice.dto.datasourcesDTO.GetDataSourcesResponse;
+import org.dataledge.datasourceservice.dto.datasourcesDTO.*;
 import org.dataledge.datasourceservice.manager.IDataSourceManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +36,17 @@ public class DataSourceController {
     ) {
         CreateDataSourceResponse response = dataSourceManager.createDataSource(userId, createDataSourceRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<UpdateDataSourceResponse> updateDataSource(
+            @RequestHeader(DataLedgeUtil.USER_ID_HEADER) String userId,
+            @PathVariable int id,
+            @Valid @RequestBody UpdateDataSourceRequest updateRequest) {
+
+        UpdateDataSourceResponse response = dataSourceManager.updateDataSource(userId, id, updateRequest);
+
+        return ResponseEntity.ok(response);
     }
 
 

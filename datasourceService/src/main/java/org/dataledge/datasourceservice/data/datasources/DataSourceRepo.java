@@ -19,4 +19,5 @@ public interface DataSourceRepo extends PagingAndSortingRepository<DataSource, I
     @Query("DELETE FROM DataSource d WHERE d.userId = :userId")
     void deleteAllByUserId(int userId);
     Optional<DataSource> findByIdAndUserId(Long id, int userId);
+    Page<DataSource> findAllByUserId(int userId, Pageable pageable);
 }

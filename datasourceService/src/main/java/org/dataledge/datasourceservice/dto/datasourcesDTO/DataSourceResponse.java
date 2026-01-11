@@ -21,4 +21,7 @@ public class DataSourceResponse {
     private Instant created;
 
     private Date updated;
+
+    public DataSourceResponse(long id, String name, DataType dataType, String desc, String url, Instant now, Date updated) {
+    }
 }
