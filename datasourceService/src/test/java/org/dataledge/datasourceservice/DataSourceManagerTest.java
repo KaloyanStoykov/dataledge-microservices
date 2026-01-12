@@ -93,19 +93,26 @@ public class DataSourceManagerTest {
 
     @Test
     void updateDataSource_ThrowsForbiddenException_WhenUserNotOwner() {
-        // Arrange
         when(dataSourceRepo.findById(100)).thenReturn(Optional.of(existingDataSource));
 
-        // Act & Assert
         assertThrows(ForbiddenException.class, () -> {
             dataSourceManager.updateDataSource("99", 100, updateRequest);
         });
     }
 
     @Test
-    void updateDataSource_ThrowsNotFoundException_WhenUserIdInvalid() {
-        // Act & Assert
+    void updateDataSource_ThrowsEntityNotFoundException_WhenUserIdInvalid() {
         assertThrows(EntityNotFoundException.class, () -> {
+            dataSourceManager.updateDataSource("abc", 100, updateRequest);
+        });
+    }
+
+    @Test
+    void updateDataSource_ThrowsNotFoundException_WhenUserIdInvalid() {
+        when(dataSourceRepo.findById(100)).thenReturn(Optional.of(existingDataSource));
+
+
+        assertThrows(NotFoundException.class, () -> {
             dataSourceManager.updateDataSource("abc", 100, updateRequest);
         });
     }
@@ -273,6 +280,33 @@ public class DataSourceManagerTest {
 
         verify(dataSourceRepo).findById(dataSourceId);
         verify(dataSourceRepo).delete(mockEntity);
+    }
+
+    @Test
+    void deleteDataSource_withAssociatedFiles_performsFullCleanup() throws Exception {
+        int dsId = 101;
+        int userId = 1;
+        List<String> filesToDelete = List.of("data_1.json", "report_2.pdf");
+
+        DataSource mockDs = DataSource.builder()
+                .id((long) dsId)
+                .userId(userId)
+                .name("Storage Source")
+                .build();
+
+        when(dataSourceRepo.findById(dsId)).thenReturn(Optional.of(mockDs));
+        when(blobMetadataManager.findAllFileNamesByUserAndDataSource(userId, dsId))
+                .thenReturn(filesToDelete);
+
+        DeleteDataSourceResponse response = dataSourceManager.deleteDataSource(String.valueOf(userId), dsId);
+
+        assertThat(response.getMessage()).contains("deleted successfully");
+
+        verify(blobMetadataManager).deleteByUserIdAndBlobNames(userId, filesToDelete);
+
+        verify(azureBlobStorage).deleteFilesBatch(String.valueOf(userId), filesToDelete);
+
+        verify(dataSourceRepo).delete(mockDs);
     }
 
     @Test
