@@ -1,15 +1,21 @@
 package org.dataledge.datasourceservice.manager.impl;
 
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.dataledge.datasourceservice.config.exceptions.BlobStorageOperationException;
 import org.dataledge.datasourceservice.data.DataType;
 import org.dataledge.datasourceservice.data.DataTypeRepo;
 import org.dataledge.datasourceservice.data.datasources.DataSource;
 import org.dataledge.datasourceservice.data.datasources.DataSourceRepo;
 import org.dataledge.datasourceservice.data.datasources.DataSourceSpecs;
+import org.dataledge.datasourceservice.data.filesnaps.BlobMetadataRepo;
 import org.dataledge.datasourceservice.dto.datasourcesDTO.*;
+import org.dataledge.datasourceservice.manager.IAzureBlobStorage;
+import org.dataledge.datasourceservice.manager.IBlobMetadataManager;
 import org.dataledge.datasourceservice.manager.IDataSourceMapper;
 import org.dataledge.datasourceservice.manager.IDataSourceManager;
 import org.springframework.data.domain.Page;
@@ -19,6 +25,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -34,7 +41,9 @@ public class DataSourceManager implements IDataSourceManager {
 
     // JPA Pageable repository
     private final DataSourceRepo dataSourceRepo;
+    private final BlobMetadataRepo blobMetadataManager;
     private final DataTypeRepo dataTypeRepo;
+    private final IAzureBlobStorage azureBlobStorage;
     // Mapper to responses
     private final IDataSourceMapper mapper;
 
@@ -108,11 +117,48 @@ public class DataSourceManager implements IDataSourceManager {
      * @return response with success message
      */
     @Override
+    @Transactional
     public DeleteDataSourceResponse deleteDataSource(String userId, int id) {
+        // 1. Find and Verify Ownership
         DataSource dataSource = dataSourceRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Unknown datasource id"));
 
-        log.info("Parsing user id for string {}", userId);
+        int parsedUserId = Integer.parseInt(userId);
+        if (parsedUserId != dataSource.getUserId()) {
+            throw new ForbiddenException("User can delete only own datasource!");
+        }
+
+        // 2. Identify all associated files
+        List<String> fileNames = blobMetadataManager.findAllFileNamesByUserAndDataSource(parsedUserId, id);
+
+        if (!fileNames.isEmpty()) {
+            log.info("Deleting {} associated files for datasource {}", fileNames.size(), id);
+
+            // 3. Delete from BlobMetadata Table
+            blobMetadataManager.deleteByUserIdAndBlobNames(parsedUserId, fileNames);
+
+            // 4. Delete from Azure Storage
+            try {
+                azureBlobStorage.deleteFilesBatch(String.valueOf(parsedUserId), fileNames);
+            } catch (Exception e) {
+                log.error("Failed to delete files from Azure for DS {}: {}", id, e.getMessage());
+                // Depending on your policy, you might want to throw an exception here to rollback everything
+                throw new BlobStorageOperationException("Could not clean up cloud storage, aborting deletion.");
+            }
+        }
+
+        // 5. Final Step: Delete the Datasource record
+        dataSourceRepo.delete(dataSource);
+
+        return new DeleteDataSourceResponse("Datasource and all associated cloud files deleted successfully!");
+    }
+
+    @Override
+    public UpdateDataSourceResponse updateDataSource(String userId, int id, UpdateDataSourceRequest updateRequest) {
+        // 1. Find the existing DataSource or throw an exception
+        DataSource existingDataSource = dataSourceRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("DataSource not found with id: " + id));
+
         int parsedUserId;
         // Parse userId from header
         try {
@@ -123,15 +169,36 @@ public class DataSourceManager implements IDataSourceManager {
             throw new NotFoundException("Invalid user ID: {}" + userId);
         }
 
-        // Check delete is for own datasource
-        if(parsedUserId != dataSource.getUserId()) {
-            log.error("ID's for users dont match datasource\nRequested id: {}", parsedUserId);
-            throw new ForbiddenException("User can delete only own datasource!");
+
+        // 2. Optional: Verify ownership if userId is required for security
+        if(existingDataSource.getUserId() != parsedUserId) {
+            throw new ForbiddenException("Users can update only own datasource!");
         }
 
-        dataSourceRepo.delete(dataSource);
+        // 3. Update basic fields from the request
+        existingDataSource.setName(updateRequest.getName());
+        existingDataSource.setDescription(updateRequest.getDescription());
+        // Add other fields as necessary (e.g., connection details, status)
 
-        return new DeleteDataSourceResponse("Datasource deleted successfully!");
+        // 4. Handle Relationship Update (DataType)
+        // Assuming the request contains a typeId to link to a different DataType
+        if (updateRequest.getTypeId() != null) {
+            DataType newType = dataTypeRepo.findById(updateRequest.getTypeId())
+                    .orElseThrow(() -> new EntityNotFoundException("DataType not found"));
+            existingDataSource.setType(newType);
+        }
+
+        // 5. Persist the changes
+        DataSource updatedDataSource = dataSourceRepo.save(existingDataSource);
+
+        // 6. Map to response DTO and return
+        return new UpdateDataSourceResponse(
+                updatedDataSource.getId().intValue(),
+                updatedDataSource.getName(),
+                updatedDataSource.getDescription(),
+                updatedDataSource.getUrl(),
+                LocalDateTime.now()
+        );
     }
 
 

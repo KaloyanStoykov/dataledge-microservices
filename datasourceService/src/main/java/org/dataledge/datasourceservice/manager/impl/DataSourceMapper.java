@@ -22,7 +22,6 @@ public class DataSourceMapper implements IDataSourceMapper {
         dataSourceResponse.setCreated(dataSource.getCreated());
         dataSourceResponse.setUpdated(dataSource.getUpdated());
 
-        // FIX: Pull data from the Entity (dataSource), not the Response (dataSourceResponse)
         if (dataSource.getType() != null) {
             DataTypeResponse typeDto = new DataTypeResponse();
             typeDto.setId(dataSource.getType().getId()); // Fixed: was dataSourceResponse

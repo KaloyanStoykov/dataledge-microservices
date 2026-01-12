@@ -32,4 +32,7 @@ public interface BlobMetadataRepo extends PagingAndSortingRepository<BlobMetadat
     @Transactional
     @Query("DELETE FROM BlobMetadata b WHERE b.userId = :userId AND b.fileName IN :blobNames")
     void deleteByUserIdAndBlobNames(int userId, List<String> blobNames);
+
+    @Query("SELECT b.fileName FROM BlobMetadata b WHERE b.userId = :userId AND b.dataSource.id = :dsId")
+    List<String> findAllFileNamesByUserAndDataSource(@Param("userId") int userId, @Param("dsId") int dsId);
 }
