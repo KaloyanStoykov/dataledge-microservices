@@ -2,6 +2,9 @@ server:
   port: 8080
 
 management:
+  endpoint:
+    gateway:
+      access: none
   endpoints:
     web:
       exposure:
