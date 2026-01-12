@@ -26,12 +26,16 @@
         <url/>
     </scm>
 
+    <properties>
+        <netty.version>4.1.129.Final</netty.version>
+    </properties>
+
     <dependencies>
         <!-- Spring Cloud Gateway (WebFlux + Reactor Netty included) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway</artifactId>
-            <version>4.3.2</version>
+            <version>4.3.3</version>
         </dependency>
 
         <!-- Eureka Client -->
