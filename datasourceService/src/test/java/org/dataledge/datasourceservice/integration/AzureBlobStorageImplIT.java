@@ -1,14 +1,16 @@
 package org.dataledge.datasourceservice.integration;
 
-import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.*;
 import com.azure.storage.blob.batch.BlobBatchClient;
 import com.azure.storage.blob.batch.BlobBatchClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
 import net.bytebuddy.utility.RandomString;
 import org.dataledge.datasourceservice.config.exceptions.BlobStorageOperationException;
-import org.dataledge.datasourceservice.data.datasources.DataSourceRepo;
+import org.dataledge.datasourceservice.data.DataType;
+import org.dataledge.datasourceservice.data.datasources.DataSource;
+import org.dataledge.datasourceservice.data.filesnaps.BlobMetadataRepo;
 import org.dataledge.datasourceservice.dto.Storage;
+import org.dataledge.datasourceservice.manager.impl.AzureBlobRequestManager;
 import org.dataledge.datasourceservice.manager.impl.AzureBlobStorageImpl;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,18 +20,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
 import org.testcontainers.containers.GenericContainer;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.bouncycastle.internal.asn1.cms.CMSObjectIdentifiers.data;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.testcontainers.shaded.org.bouncycastle.asn1.cmc.CMCStatus.success;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -50,9 +48,12 @@ class AzureBlobStorageImplIT {
     private BlobBatchClient blobBatchClient;
     private AzureBlobStorageImpl azureBlobStorageService;
 
-    private DataSourceRepo dataSourceRepo;
 
     private AzureBlobStorageImpl azureBlobStorageImpl;
+
+    private AzureBlobRequestManager manager; // The class containing writeFileToBlob
+
+    private BlobMetadataRepo metadataRepo;
 
     @BeforeEach
     void setUp() {
@@ -75,7 +76,6 @@ class AzureBlobStorageImplIT {
 
         azureBlobStorageImpl = new AzureBlobStorageImpl(realContainerClient, blobBatchClient);
     }
-
 
 
     @Test

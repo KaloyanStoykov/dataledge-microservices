@@ -47,6 +47,14 @@ class AzureBlobRequestManagerTest {
     @InjectMocks
     private AzureBlobRequestManager azureBlobRequestManager;
 
+    private DataSource createMockDataSource(String type) {
+        DataSource ds = new DataSource();
+        DataType dsType = new DataType();
+        dsType.setName(type);
+        ds.setType(dsType);
+        return ds;
+    }
+
     @Test
     void saveAPIContentToBlob_WrongType_ThrowsException() {
         // Arrange
@@ -66,89 +74,147 @@ class AzureBlobRequestManagerTest {
         verifyNoInteractions(azureBlobStorage);
     }
 
-//    @Test
-//    void saveAPIContentToBlob_ShouldSaveSuccessfully_WhenApiReturnsDataAndFileIsNew() throws IOException {
-//        String userId = "123";
-//        String fileName = "data.json";
-//        String apiUrl = "https://fake-api.com/data";
-//        byte[] mockContent = "{\"some\": \"json data\"}".getBytes();
-//
-//        // 1. Stub the internal secure fetch method to avoid real network calls
-//        doReturn(mockContent).when(azureBlobRequestManager).fetchSecurely(anyString());
-//
-//        // 2. Stub storage interactions
-//        when(azureBlobStorage.exists(anyString())).thenReturn(false);
-//        when(azureBlobStorage.write(any(Storage.class))).thenReturn("https://azure.com/blob/url");
-//
-//        // 3. Act
-//        String result = azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L);
-//
-//        // 4. Assert
-//        assertEquals("API content successfully saved!", result);
-//
-//        // Verify correct storage call
-//        ArgumentCaptor<Storage> storageCaptor = ArgumentCaptor.forClass(Storage.class);
-//        verify(azureBlobStorage).write(storageCaptor.capture());
-//
-//        Storage capturedStorage = storageCaptor.getValue();
-//        assertEquals(userId, capturedStorage.getUserId());
-//        assertEquals(fileName, capturedStorage.getFileName());
-//        assertEquals(mockContent.length, capturedStorage.getContentLength());
-//    }
-//
-//    @Test
-//    void saveAPIContentToBlob_ShouldThrowException_WhenApiCallFails() throws IOException {
-//        String userId = "123";
-//        String apiUrl = "https://bad-api.com";
-//        String fileName = "file.txt";
-//
-//        // We don't need to mock exists() because the network fail happens first (or we can use lenient)
-//        lenient().when(azureBlobStorage.exists(anyString())).thenReturn(false);
-//
-//        // Force the protected method to throw the exception
-//        doThrow(new BlobStorageOperationException("Failed to call external API"))
-//                .when(azureBlobRequestManager).fetchSecurely(anyString());
-//
-//        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class,
-//                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L));
-//
-//        assertThat(ex.getMessage()).contains("Failed to call external API");
-//        verify(azureBlobStorage, never()).write(any());
-//    }
-//
-//    @Test
-//    void saveAPIContentToBlob_ShouldThrowException_WhenApiReturnsNull() throws IOException {
-//        String userId = "12";
-//        String apiUrl = "https://empty-api.com";
-//        String fileName = "file.txt";
-//
-//        lenient().when(azureBlobStorage.exists(anyString())).thenReturn(false);
-//
-//        // Force the protected method to return empty bytes
-//        doReturn(new byte[0]).when(azureBlobRequestManager).fetchSecurely(anyString());
-//
-//        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class,
-//                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L));
-//
-//        assertThat(ex.getMessage()).contains("API returned no content");
-//        verify(azureBlobStorage, never()).write(any());
-//    }
-//
-//    @Test
-//    void saveAPIContentToBlob_ShouldThrowException_WhenFileAlreadyExists() throws IOException {
-//        String userId = "12";
-//        String fileName = "duplicate.json";
-//        String apiUrl = "https://any-url-is-fine-here.com";
-//
-//        // Logic check: If file exists, we shouldn't even attempt the network call
-//        when(azureBlobStorage.exists(anyString())).thenReturn(true);
-//
-//        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class,
-//                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L));
-//
-//        assertThat(ex.getMessage()).contains("File already exists");
-//        verify(azureBlobStorage, never()).write(any());
-//    }
+
+
+    @Test
+    void saveAPIContentToBlob_ShouldSaveSuccessfully_WhenApiReturnsDataAndFileIsNew() throws IOException {
+        String userId = "123";
+        String fileName = "data.json";
+        String apiUrl = "https://fake-api.com/data";
+        byte[] mockContent = "{\"some\": \"json data\"}".getBytes();
+
+        Long datasourceId = 1L;
+        Integer parsedUserId = 123;
+
+        // 1. Mock the DataSource and its Type
+        DataSource mockDs = mock(DataSource.class);
+        DataType mockType = mock(DataType.class);
+
+        when(mockType.getName()).thenReturn("API");
+        when(mockDs.getType()).thenReturn(mockType);
+
+        // 2. Stub the Repository to return the mock DataSource
+        when(dataSourceRepo.findByIdAndUserId(datasourceId, parsedUserId))
+                .thenReturn(Optional.of(mockDs));
+
+        // 1. Stub the internal secure fetch method to avoid real network calls
+        doReturn(mockContent).when(azureBlobRequestManager).fetchSecurely(anyString());
+
+        // 2. Stub storage interactions
+        when(azureBlobStorage.exists(anyString())).thenReturn(false);
+        when(azureBlobStorage.write(any(Storage.class))).thenReturn("https://azure.com/blob/url");
+
+        // 3. Act
+        String result = azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L);
+
+        // 4. Assert
+        assertEquals("API content successfully saved!", result);
+
+        // Verify correct storage call
+        ArgumentCaptor<Storage> storageCaptor = ArgumentCaptor.forClass(Storage.class);
+        verify(azureBlobStorage).write(storageCaptor.capture());
+
+        Storage capturedStorage = storageCaptor.getValue();
+        assertEquals(userId, capturedStorage.getUserId());
+        assertEquals(fileName, capturedStorage.getFileName());
+        assertEquals(mockContent.length, capturedStorage.getContentLength());
+    }
+
+    @Test
+    void saveAPIContentToBlob_ShouldThrowException_WhenApiCallFails() throws IOException {
+        String userId = "123";
+        String apiUrl = "https://bad-api.com";
+        String fileName = "file.txt";
+
+        Long datasourceId = 1L;
+        Integer parsedUserId = 123;
+
+        // 1. Mock the DataSource and its Type
+        DataSource mockDs = mock(DataSource.class);
+        DataType mockType = mock(DataType.class);
+
+        when(mockType.getName()).thenReturn("API");
+        when(mockDs.getType()).thenReturn(mockType);
+
+        // 2. Stub the Repository to return the mock DataSource
+        when(dataSourceRepo.findByIdAndUserId(datasourceId, parsedUserId))
+                .thenReturn(Optional.of(mockDs));
+
+        // We don't need to mock exists() because the network fail happens first (or we can use lenient)
+        lenient().when(azureBlobStorage.exists(anyString())).thenReturn(false);
+
+        // Force the protected method to throw the exception
+        doThrow(new BlobStorageOperationException("Failed to call external API"))
+                .when(azureBlobRequestManager).fetchSecurely(anyString());
+
+        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class,
+                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L));
+
+        assertThat(ex.getMessage()).contains("Failed to call external API");
+        verify(azureBlobStorage, never()).write(any());
+    }
+
+    @Test
+    void saveAPIContentToBlob_ShouldThrowException_WhenApiReturnsNull() throws IOException {
+        String userId = "12";
+        String apiUrl = "https://empty-api.com";
+        String fileName = "file.txt";
+
+        Long datasourceId = 1L;
+        Integer parsedUserId = 12;
+
+        // 1. Mock the DataSource and its Type
+        DataSource mockDs = mock(DataSource.class);
+        DataType mockType = mock(DataType.class);
+
+        when(mockType.getName()).thenReturn("API");
+        when(mockDs.getType()).thenReturn(mockType);
+
+        // 2. Stub the Repository to return the mock DataSource
+        when(dataSourceRepo.findByIdAndUserId(datasourceId, parsedUserId))
+                .thenReturn(Optional.of(mockDs));
+
+        lenient().when(azureBlobStorage.exists(anyString())).thenReturn(false);
+
+        // Force the protected method to return empty bytes
+        doReturn(new byte[0]).when(azureBlobRequestManager).fetchSecurely(anyString());
+
+        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class,
+                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L));
+
+        assertThat(ex.getMessage()).contains("API returned no content");
+        verify(azureBlobStorage, never()).write(any());
+    }
+
+    @Test
+    void saveAPIContentToBlob_ShouldThrowException_WhenFileAlreadyExists() throws IOException {
+        String userId = "12";
+        String fileName = "duplicate.json";
+        String apiUrl = "https://any-url-is-fine-here.com";
+
+        Long datasourceId = 1L;
+        Integer parsedUserId = 12;
+
+        // 1. Mock the DataSource and its Type
+        DataSource mockDs = mock(DataSource.class);
+        DataType mockType = mock(DataType.class);
+
+        when(mockType.getName()).thenReturn("API");
+        when(mockDs.getType()).thenReturn(mockType);
+
+        // 2. Stub the Repository to return the mock DataSource
+        when(dataSourceRepo.findByIdAndUserId(datasourceId, parsedUserId))
+                .thenReturn(Optional.of(mockDs));
+
+        // Logic check: If file exists, we shouldn't even attempt the network call
+        when(azureBlobStorage.exists(anyString())).thenReturn(true);
+
+        BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class,
+                () -> azureBlobRequestManager.saveAPIContentToBlob(apiUrl, fileName, userId, 1L));
+
+        assertThat(ex.getMessage()).contains("File with name " + fileName + " already exists");
+        verify(azureBlobStorage, never()).write(any());
+    }
 
     // -------------------------------------------------------------------
     // Tests for fetchSecurely (Low-level network/security logic)
@@ -222,6 +288,20 @@ class AzureBlobRequestManagerTest {
         String requestedName = "custom-name.pdf";
         byte[] content = "dummy-pdf-content".getBytes();
 
+        Long datasourceId = 1L;
+        Integer parsedUserId = 15;
+
+        // 1. Mock the DataSource and its Type
+        DataSource mockDs = mock(DataSource.class);
+        DataType mockType = mock(DataType.class);
+
+        when(mockType.getName()).thenReturn("File Upload");
+        when(mockDs.getType()).thenReturn(mockType);
+
+        // 2. Stub the Repository to return the mock DataSource
+        when(dataSourceRepo.findByIdAndUserId(datasourceId, parsedUserId))
+                .thenReturn(Optional.of(mockDs));
+
         when(mockFile.getInputStream()).thenReturn(new ByteArrayInputStream(content));
         when(mockFile.getSize()).thenReturn((long) content.length);
 
@@ -248,6 +328,20 @@ class AzureBlobRequestManagerTest {
         String userId = "13";
         String originalName = "original.jpg";
 
+        Long datasourceId = 1L;
+        Integer parsedUserId = 13;
+
+        // 1. Mock the DataSource and its Type
+        DataSource mockDs = mock(DataSource.class);
+        DataType mockType = mock(DataType.class);
+
+        when(mockType.getName()).thenReturn("File Upload");
+        when(mockDs.getType()).thenReturn(mockType);
+
+        // 2. Stub the Repository to return the mock DataSource
+        when(dataSourceRepo.findByIdAndUserId(datasourceId, parsedUserId))
+                .thenReturn(Optional.of(mockDs));
+
         when(mockFile.getOriginalFilename()).thenReturn(originalName);
         when(mockFile.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
         when(azureBlobStorage.exists(anyString())).thenReturn(false);
@@ -263,6 +357,20 @@ class AzureBlobRequestManagerTest {
     void writeFileToBlob_ShouldThrowException_WhenNoFilenameAvailable() {
         when(mockFile.getOriginalFilename()).thenReturn(null);
 
+        Long datasourceId = 1L;
+        Integer parsedUserId = 1;
+
+        // 1. Mock the DataSource and its Type
+        DataSource mockDs = mock(DataSource.class);
+        DataType mockType = mock(DataType.class);
+
+        when(mockType.getName()).thenReturn("File Upload");
+        when(mockDs.getType()).thenReturn(mockType);
+
+        // 2. Stub the Repository to return the mock DataSource
+        when(dataSourceRepo.findByIdAndUserId(datasourceId, parsedUserId))
+                .thenReturn(Optional.of(mockDs));
+
         BlobStorageOperationException ex = assertThrows(BlobStorageOperationException.class,
                 () -> azureBlobRequestManager.writeFileToBlob(mockFile, "", "1", 1L));
 
@@ -274,6 +382,20 @@ class AzureBlobRequestManagerTest {
     void writeFileToBlob_ShouldThrowException_WhenFileAlreadyExists() throws IOException {
         String userId = "1";
         String fileName = "duplicate.txt";
+
+        Long datasourceId = 1L;
+        Integer parsedUserId = 1;
+
+        // 1. Mock the DataSource and its Type
+        DataSource mockDs = mock(DataSource.class);
+        DataType mockType = mock(DataType.class);
+
+        when(mockType.getName()).thenReturn("File Upload");
+        when(mockDs.getType()).thenReturn(mockType);
+
+        // 2. Stub the Repository to return the mock DataSource
+        when(dataSourceRepo.findByIdAndUserId(datasourceId, parsedUserId))
+                .thenReturn(Optional.of(mockDs));
 
         when(azureBlobStorage.exists(anyString())).thenReturn(true);
 
@@ -288,6 +410,20 @@ class AzureBlobRequestManagerTest {
     void writeFileToBlob_ShouldThrowException_WhenInputStreamFails() throws IOException {
         String userId = "1";
         String fileName = "corrupt.txt";
+
+        Long datasourceId = 1L;
+        Integer parsedUserId = 1;
+
+        // 1. Mock the DataSource and its Type
+        DataSource mockDs = mock(DataSource.class);
+        DataType mockType = mock(DataType.class);
+
+        when(mockType.getName()).thenReturn("File Upload");
+        when(mockDs.getType()).thenReturn(mockType);
+
+        // 2. Stub the Repository to return the mock DataSource
+        when(dataSourceRepo.findByIdAndUserId(datasourceId, parsedUserId))
+                .thenReturn(Optional.of(mockDs));
 
         when(azureBlobStorage.exists(anyString())).thenReturn(false);
         when(mockFile.getInputStream()).thenThrow(new IOException("Stream broken"));
