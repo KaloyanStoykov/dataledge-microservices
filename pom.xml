@@ -20,7 +20,6 @@
     <modules>
         <module>common-utils</module>
         <module>datasourceService</module>
-        <module>userService</module>
         <module>eureka_server</module>
         <module>gateway</module>
         <module>identityService</module>
