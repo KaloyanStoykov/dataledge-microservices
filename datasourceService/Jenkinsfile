@@ -58,11 +58,11 @@ pipeline {
                 }
             }
         }
-        /
+
         stage('Deploy to Azure') {
             steps {
                 withCredentials([azureServicePrincipal('dataledge-jenkins-deployer')]) {
-                    sh """
+                    sh '''
                         az login --service-principal \
                           -u $AZURE_CLIENT_ID \
                           -p $AZURE_CLIENT_SECRET \
@@ -72,7 +72,7 @@ pipeline {
                           --name datasource-service \
                           --resource-group Complex_Software_Dev_Environment \
                           --image kiko12122/dataledge-datasource-service:latest
-                    """
+                    '''
                 }
             }
         }
