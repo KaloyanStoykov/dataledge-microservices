@@ -58,5 +58,23 @@ pipeline {
                 }
             }
         }
+        /
+        stage('Deploy to Azure') {
+            steps {
+                withCredentials([azureServicePrincipal('dataledge-jenkins-deployer')]) {
+                    sh """
+                        az login --service-principal \
+                          -u $AZURE_CLIENT_ID \
+                          -p $AZURE_CLIENT_SECRET \
+                          -t $AZURE_TENANT_ID
+
+                        az containerapp update \
+                          --name datasource-service \
+                          --resource-group Complex_Software_Dev_Environment \
+                          --image kiko12122/dataledge-datasource-service:latest
+                    """
+                }
+            }
+        }
     }
 }
