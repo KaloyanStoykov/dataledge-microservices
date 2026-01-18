@@ -26,10 +26,10 @@ spec:
             name: datasource-config
         resources:
           requests:
-            cpu: "100m"    
+            cpu: "300m"
             memory: "256Mi"
           limits:
-            cpu: "500m"    
+            cpu: "600m"
             memory: "512Mi"
       # Volumes removed because envFrom is cleaner for Spring Boot
 ---
@@ -37,11 +37,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: datasource-service
+  namespace: default
+  labels:
+    app: datasource
 spec:
   selector:
     app: datasource
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 8082
       targetPort: 8082 
   type: ClusterIP

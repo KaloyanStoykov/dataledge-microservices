@@ -26,10 +26,10 @@ spec:
                 name: identity-config
           resources:
             requests:
-              cpu: "100m"
+              cpu: "200m"
               memory: "256Mi"
             limits:
-              cpu: "500m"
+              cpu: "400m"
               memory: "512Mi"
       # Volumes removed because envFrom is cleaner for Spring Boot
 ---

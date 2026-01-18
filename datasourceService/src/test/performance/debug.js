@@ -5,13 +5,13 @@ export const options = {
     iterations: 1,
 };
 
-const BASE_URL = 'http://localhost:8080/datasources';
+const BASE_URL = 'http://192.168.49.2:30080/datasources';
 
 export default function () {
 
-    const MY_ACCESS_TOKEN = 'TOKEN';
+    const MY_ACCESS_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI5Iiwic3ViIjoiZW1haWxAZW1haWwuY29tIiwiaWF0IjoxNzY4MzY5NTA1LCJleHAiOjE3NjgzNzMxMDV9.Vv6k_GSWEzAiUlP_RcfgUeGZ9-oAyirwpxRSYZNyA9E';
 
-    const MY_USER_ID = '21';
+    const MY_USER_ID = '9';
 
     const params = {
         headers: {

@@ -16,7 +16,10 @@ spec:
     spec:
       containers:
         - name: mysql
-          image: mysql:latest
+          image: mysql:latest # Using a specific version is safer than 'latest'
+          args:
+            - "--max-connections=600"
+            - "--innodb-buffer-pool-size=1G" # Dedicated cache for Identity DB
           env:
             - name: MYSQL_DATABASE
               value: identity
@@ -26,9 +29,15 @@ spec:
               value: verysecret
             - name: MYSQL_USER
               value: myuser
-          # MOVED: ports must be inside the container definition
           ports:
             - containerPort: 3306
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi" # This stops the OOMKilled errors
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql

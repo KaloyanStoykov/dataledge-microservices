@@ -15,17 +15,28 @@ spec:
       containers:
         - name: mysql
           image: mysql:latest
+          args:
+            - "--max-connections=600"
+            - "--innodb-buffer-pool-size=2G" # More RAM here because this DB is hit harder
+            - "--innodb-flush-log-at-trx-commit=2" # Significant speed boost for load tests (less frequent disk syncing)
           env:
             - name: MYSQL_DATABASE
-              value: dataledge      # Matches .env
+              value: dataledge
             - name: MYSQL_USER
-              value: myuser         # Required to create the user
+              value: myuser
             - name: MYSQL_PASSWORD
-              value: secret         # Matches .env
+              value: secret
             - name: MYSQL_ROOT_PASSWORD
               value: verysecret
           ports:
             - containerPort: 3306
+          resources:
+            requests:
+              cpu: "300m"
+              memory: "1Gi"
+            limits:
+              cpu: "1000m" # Give it a full core for indexing and writes
+              memory: "2Gi" # Prevents OOM crashes during heavy volume
           volumeMounts:
             - name: datasource-storage
               mountPath: /var/lib/mysql
