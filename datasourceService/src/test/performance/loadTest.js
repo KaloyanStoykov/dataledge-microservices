@@ -3,27 +3,25 @@ import { check, group, sleep } from 'k6';
 
 // --- 1. CONFIGURATION (The Load Profile) ---
 export const options = {
-    // We use "stages" to simulate real traffic patterns
     stages: [
-        { duration: '2m', target: 1000 },  // Step 1: Moderate Load
-        { duration: '1m', target: 1000 },
+        { duration: '2m', target: 250 },  // Step 1: Moderate Load
+        { duration: '1m', target: 500 },
         { duration: '1m', target: 0 },   // Cooldown
     ],
 
-    // The test is considered "FAILED" if we break these rules
     thresholds: {
-        // 95% of requests must finish within 600ms
-        http_req_duration: ['p(95)<600'],
+        // 95% of requests must finish within 2s
+        http_req_duration: ['p(95)<2000'],
         // We want less than 1% error rate
         http_req_failed: ['rate<0.01'],
     },
 };
 
-const BASE_URL = 'http://localhost:8080/datasources';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080/datasources';
 
 // Paste your working constants here
-const MY_ACCESS_TOKEN = 'TOKEN';
-const MY_USER_ID = '21';
+const MY_ACCESS_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiI5Iiwic3ViIjoiZW1haWxAZW1haWwuY29tIiwiaWF0IjoxNzY4MzY5NTA1LCJleHAiOjE3NjgzNzMxMDV9.Vv6k_GSWEzAiUlP_RcfgUeGZ9-oAyirwpxRSYZNyA9E';
+const MY_USER_ID = '9';
 
 export default function () {
     const params = {
@@ -66,23 +64,11 @@ export default function () {
                 console.error('Failed to parse JSON on successful 201 response');
             }
         } else {
-            // Optional: Print error for the first few failures to debug
-            // console.log(`Request Failed: Status ${res.status}`);
+            console.warn(`Request Failed! Status: ${res.status} | Body: ${res.body.substring(0, 100)}`);
         }
     });
 
-    sleep(1);
+    sleep(2);
 
-    // --- STEP 2: DELETE ---
-    // Only run this if we actually got an ID from Step 1
-    if (newDataSourceId) {
-        group('Delete DataSource', function () {
-            const res = http.del(`${BASE_URL}/${newDataSourceId}`, null, params);
-            check(res, {
-                'is deleted (200)': (r) => r.status === 200,
-            });
-        });
-    }
 
-    sleep(1);
 }

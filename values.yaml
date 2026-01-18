@@ -1,16 +1,68 @@
 prometheus:
-  url: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local
+  url: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local
   port: 9090
 
 rules:
   default: false
   custom:
-    - seriesQuery: 'http_server_requests_seconds_count{pod!="",namespace!=""}'
+    # Rule for standard services (Server Side)
+    - seriesQuery: 'http_server_requests_seconds_count{namespace!="",pod!=""}'
       resources:
         overrides:
-          namespace: {resource: "namespace"}
-          pod: {resource: "pod"}
+          namespace:
+            resource: "namespace"
+          pod:
+            resource: "pod"
       name:
         matches: "^http_server_requests_seconds_count"
         as: "http_server_requests_per_second"
-      metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[1m])) by (<<.GroupBy>>)'
+      metricsQuery: >
+        sum(rate(<<.Series>>{<<.LabelMatchers>>}[1m])) by (<<.GroupBy>>)
+
+    # Rule for Gateway (Client Side)
+    - seriesQuery: 'http_client_requests_seconds_count{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace:
+            resource: "namespace"
+          pod:
+            resource: "pod"
+      name:
+        matches: "^http_client_requests_seconds_count"
+        as: "http_gateway_requests_per_second"
+      metricsQuery: >
+        sum(rate(<<.Series>>{<<.LabelMatchers>>}[1m])) by (<<.GroupBy>>)
+
+    # --- SUCCESS RATE RULE ---
+    - seriesQuery: 'http_server_requests_seconds_count{status!~"5..",namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace:
+            resource: "namespace"
+          pod:
+            resource: "pod"
+      name:
+        matches: "^http_server_requests_seconds_count"
+        as: "http_requests_success_rate"
+      metricsQuery: |
+        sum(rate(http_server_requests_seconds_count{status!~"5..", <<.LabelMatchers>>}[1m]))
+        /
+        sum(rate(http_server_requests_seconds_count{<<.LabelMatchers>>}[1m]))
+
+    # --- RESPONSE TIME (P95 LATENCY) RULE ---
+    - seriesQuery: 'http_server_requests_seconds_bucket{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace:
+            resource: "namespace"
+          pod:
+            resource: "pod"
+      name:
+        matches: "^http_server_requests_seconds_bucket"
+        as: "http_requests_latency_p95"
+      metricsQuery: |
+        histogram_quantile(
+          0.95,
+          sum(rate(http_server_requests_seconds_bucket{<<.LabelMatchers>>}[1m]))
+          by (le, <<.GroupBy>>)
+        )

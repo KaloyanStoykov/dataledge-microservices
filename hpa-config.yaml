@@ -8,7 +8,7 @@ spec:
     kind: Deployment
     name: identity-service
   minReplicas: 1
-  maxReplicas: 5
+  maxReplicas: 3
   metrics:
   - type: Resource
     resource:
@@ -20,14 +20,14 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: identity-hpa
+  name: datasource-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: datasource-service
-  minReplicas: 3
-  maxReplicas: 8
+  minReplicas: 2
+  maxReplicas: 5
   metrics:
     - type: Resource
       resource:
@@ -46,16 +46,20 @@ spec:
     kind: Deployment
     name: gateway-service
   minReplicas: 2
-  maxReplicas: 10
+  maxReplicas: 5
   behavior:
-    scaleDown:
-      stabilizationWindowSeconds: 30
+    scaleUp:
+      stabilizationWindowSeconds: 0 # Scale up instantly when load hits
       policies:
-        - type: Percent
-          value: 100
-          periodSeconds: 15
-
-
+        - type: Pods
+          value: 2
+          periodSeconds: 15        # Add 2 pods max every 15s to prevent "over-scaling"
+    scaleDown:
+      stabilizationWindowSeconds: 120 # Wait 2 minutes of low traffic before killing pods
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 30        # Only kill 1 pod every 30s (gradual ramp down)
   metrics:
     - type: Pods
       pods:
@@ -63,10 +67,10 @@ spec:
           name: http_server_requests_per_second
         target:
           type: AverageValue
-          averageValue: "50" # Target 50 requests per second per pod
+          averageValue: "60"       # Slightly higher threshold to avoid "jitter"
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: 90
+          averageUtilization: 80   # Lowered from 90 to give breathing room

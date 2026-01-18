@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2026-01-10T16:59:34Z"
+  name: datasource-config
+  namespace: default
+  resourceVersion: "771"
+  uid: 85bedc95-418f-4409-ace2-60df709ec5b9
+data:
+  SERVER_TOMCAT_ACCEPT-COUNT: "1000"
+  SERVER_TOMCAT_THREADS_MAX: "400"
+  SERVER_TOMCAT_MAX-CONNECTIONS: "2000"
+
+  SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "15"
+  SPRING_DATASOURCE_HIKARI_CONNECTION-TIMEOUT: "20000"
+  SPRING_DATASOURCE_HIKARI_MINIMUM-IDLE: "20"
+  AZURE_CONNECTION_STRING: ""
+  AZURE_FILE_CONTAINER_NAME: dataledge-file-system
+  AZURE_STORAGE_ACCOUNT_ENDPOINT: https://dataledge.blob.core.windows.net/
+  AZURE_STORAGE_ACCOUNT_NAME: dataledge
+  DATASOURCE_PASSWORD: secret
+  DATASOURCE_URL: jdbc:mysql://mysql:3306/dataledge
+  DATASOURCE_USERNAME: myuser
+  EUREKA_CLIENT: http://eureka-service:8761/eureka/
+  EUREKA_HOSTNAME: datasource-service
+  EUREKA_IPADDRESS: datasource-service
+  MYSQL_DB: dataledge
+  MYSQL_PASS: secret
+  MYSQL_ROOT_PASS: verysecret
+  MYSQL_USER: myuser
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PASS: secret
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: myuser
+  SERVER_PORT: "8082"
+  SPRING_JPA_DATABASE-PLATFORM: org.hibernate.dialect.MySQLDialect

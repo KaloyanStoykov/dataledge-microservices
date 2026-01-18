@@ -175,20 +175,16 @@ public class DataSourceManager implements IDataSourceManager {
             throw new ForbiddenException("Users can update only own datasource!");
         }
 
-        // 3. Update basic fields from the request
         existingDataSource.setName(updateRequest.getName());
         existingDataSource.setDescription(updateRequest.getDescription());
-        // Add other fields as necessary (e.g., connection details, status)
+        existingDataSource.setUrl(updateRequest.getDataSourceUrl());
 
-        // 4. Handle Relationship Update (DataType)
-        // Assuming the request contains a typeId to link to a different DataType
         if (updateRequest.getTypeId() != null) {
             DataType newType = dataTypeRepo.findById(updateRequest.getTypeId())
                     .orElseThrow(() -> new EntityNotFoundException("DataType not found"));
             existingDataSource.setType(newType);
         }
 
-        // 5. Persist the changes
         DataSource updatedDataSource = dataSourceRepo.save(existingDataSource);
 
         // 6. Map to response DTO and return
